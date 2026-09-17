@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { MealWindow } from "@/types/menu";
 import { verifyAdminPassword, uploadMenuPhoto } from "@/lib/api";
+import { compressImage } from "@/lib/imageCompression";
 
 const PRESET_FOOD_COURTS = [
   { id: "magna", name: "Magna (North Zone)" },
@@ -39,6 +40,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
   const [mealWindow, setMealWindow] = useState<MealWindow>("lunch");
   const [isFixedMenu, setIsFixedMenu] = useState(false);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [isCompressing, setIsCompressing] = useState(false);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -68,24 +70,26 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
       const fileList = Array.from(files);
-      const readers = fileList.map((file) => {
-        return new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            resolve(reader.result as string);
-          };
-          reader.readAsDataURL(file);
-        });
-      });
+      setIsCompressing(true);
+      setStatusMessage("Optimizing photos for fast upload...");
 
-      Promise.all(readers).then((newImages) => {
-        setImagePreviews((prev) => [...prev, ...newImages]);
-      });
-      e.target.value = "";
+      try {
+        const compressedList = await Promise.all(
+          fileList.map((file) => compressImage(file))
+        );
+        setImagePreviews((prev) => [...prev, ...compressedList]);
+        setStatusMessage("");
+      } catch (err) {
+        console.error("Image compression error:", err);
+        setStatusMessage("Failed to process images. Please try again.");
+      } finally {
+        setIsCompressing(false);
+        e.target.value = "";
+      }
     }
   };
 
@@ -370,10 +374,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
 
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isCompressing || imagePreviews.length === 0}
                 className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm shadow-xl transition-all disabled:opacity-50"
               >
-                {isSubmitting ? "Updating & Purging Cache..." : "Save Menu & Update Feed"}
+                {isCompressing
+                  ? "Optimizing Photos..."
+                  : isSubmitting
+                  ? "Updating & Purging Cache..."
+                  : "Save Menu & Update Feed"}
               </button>
             </form>
           </div>

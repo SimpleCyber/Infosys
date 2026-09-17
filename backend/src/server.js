@@ -84,10 +84,10 @@ app.get('/api/menus/feed', async (req, res) => {
 
 // Admin Password Verification
 app.post('/api/admin/verify', (req, res) => {
-  const { password } = req.body;
-  const expectedPassword = process.env.ADMIN_PASSWORD || 'infosys123';
+  const { password } = req.body || {};
+  const expectedPassword = (process.env.ADMIN_PASSWORD || 'infosys123').trim();
   
-  if (password === expectedPassword) {
+  if (password && password.trim() === expectedPassword) {
     res.json({ success: true, message: 'Admin authenticated' });
   } else {
     res.status(401).json({ success: false, error: 'Invalid password' });
@@ -96,10 +96,10 @@ app.post('/api/admin/verify', (req, res) => {
 
 // Admin Upload Menu
 app.post('/api/admin/upload-menu', async (req, res) => {
-  const { password, foodCourtId, outletName, mealWindow, imageUrl, imageUrls, isFixedMenu } = req.body;
-  const expectedPassword = process.env.ADMIN_PASSWORD || 'infosys123';
+  const { password, foodCourtId, outletName, mealWindow, imageUrl, imageUrls, isFixedMenu } = req.body || {};
+  const expectedPassword = (process.env.ADMIN_PASSWORD || 'infosys123').trim();
 
-  if (password !== expectedPassword) {
+  if (!password || password.trim() !== expectedPassword) {
     return res.status(401).json({ error: 'Unauthorized. Invalid admin password.' });
   }
 
@@ -112,17 +112,17 @@ app.post('/api/admin/upload-menu', async (req, res) => {
   }
 
   try {
-    const savedMenus = [];
-    for (const img of images) {
-      const savedMenu = await saveOutletMenu({
-        foodCourtId,
-        outletName,
-        mealWindow,
-        imageUrl: img,
-        isFixedMenu: Boolean(isFixedMenu),
-      });
-      savedMenus.push(savedMenu);
-    }
+    const savedMenus = await Promise.all(
+      images.map((img) =>
+        saveOutletMenu({
+          foodCourtId,
+          outletName,
+          mealWindow,
+          imageUrl: img,
+          isFixedMenu: Boolean(isFixedMenu),
+        })
+      )
+    );
 
     res.json({
       success: true,

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MealWindow } from "@/types/menu";
 import { verifyAdminPassword, uploadMenuPhoto } from "@/lib/api";
+import { compressImage } from "@/lib/imageCompression";
 import { ALL_8_CAMPUS_FOOD_COURTS } from "@/components/FoodCourtFeed";
 
 const SUGGESTED_OUTLETS = [
@@ -29,6 +30,7 @@ export default function AdminPage() {
   const [mealWindow, setMealWindow] = useState<MealWindow>("lunch");
   const [isFixedMenu, setIsFixedMenu] = useState(false);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [isCompressing, setIsCompressing] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -76,25 +78,27 @@ export default function AdminPage() {
     setPassword("");
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
       const fileList = Array.from(files);
-      const readers = fileList.map((file) => {
-        return new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            resolve(reader.result as string);
-          };
-          reader.readAsDataURL(file);
-        });
-      });
+      setIsCompressing(true);
+      setStatusMessage("Optimizing photos for fast upload...");
 
-      Promise.all(readers).then((newImages) => {
-        setImagePreviews((prev) => [...prev, ...newImages]);
-      });
-      // Reset input value so same files can be re-selected if desired
-      e.target.value = "";
+      try {
+        const compressedList = await Promise.all(
+          fileList.map((file) => compressImage(file))
+        );
+        setImagePreviews((prev) => [...prev, ...compressedList]);
+        setStatusMessage("");
+      } catch (err) {
+        console.error("Image processing error:", err);
+        setStatusMessage("Failed to process some images. Please try again.");
+      } finally {
+        setIsCompressing(false);
+        // Reset input value so same files can be re-selected if desired
+        e.target.value = "";
+      }
     }
   };
 
@@ -498,11 +502,13 @@ export default function AdminPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isSubmitting || imagePreviews.length === 0 || !outletName.trim()}
+              disabled={isSubmitting || isCompressing || imagePreviews.length === 0 || !outletName.trim()}
               className="w-full py-4 rounded-2xl bg-neutral-900 hover:bg-neutral-800 text-white font-black text-xs uppercase tracking-wider shadow-lg transition-all flex items-center justify-center space-x-2 disabled:opacity-50 active:scale-98"
             >
               <span>
-                {isSubmitting
+                {isCompressing
+                  ? "Optimizing Photos..."
+                  : isSubmitting
                   ? "Publishing Menu..."
                   : `Publish ${imagePreviews.length > 1 ? `${imagePreviews.length} Photos` : "Menu"} to ${activeCourt.name}`}
               </span>
