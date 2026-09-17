@@ -100,7 +100,14 @@ export default function Home() {
         />
 
         {/* Scrollable Feed Area (Categories & Dynamic Menus Section) */}
-        <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div
+          className="flex-1 overflow-y-auto overscroll-contain no-scrollbar"
+          style={{
+            WebkitOverflowScrolling: "touch",
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          }}
+        >
           <FoodCourtFeed
             foodCourts={feedData.data.foodCourts}
             currentWindow={mealWindow}

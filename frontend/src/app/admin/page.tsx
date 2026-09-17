@@ -216,8 +216,12 @@ export default function AdminPage() {
           /* Manager Upload Form */
           <form
             onSubmit={handleSubmit}
-            className="flex-1 overflow-y-auto overscroll-contain p-5 space-y-5 pb-[max(3rem,env(safe-area-inset-bottom))]"
-            style={{ WebkitOverflowScrolling: "touch" }}
+            className="flex-1 overflow-y-auto overscroll-contain no-scrollbar p-5 space-y-5 pb-[max(3rem,env(safe-area-inset-bottom))]"
+            style={{
+              WebkitOverflowScrolling: "touch",
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}
           >
             {/* 6-Hour Menu Lifecycle Notice Banner */}
             <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50/60 border border-amber-200/80 flex items-start space-x-2.5 shadow-2xs">
@@ -242,7 +246,7 @@ export default function AdminPage() {
               </div>
 
               <div className="relative -mx-5 px-5">
-                <div className="flex space-x-3 overflow-x-auto pt-2.5 pb-2.5 px-1 scrollbar-none snap-x snap-mandatory">
+                <div className="flex space-x-3 overflow-x-auto pt-2.5 pb-2.5 px-1 scrollbar-none no-scrollbar snap-x snap-mandatory">
                   {ALL_8_CAMPUS_FOOD_COURTS.map((court) => {
                     const isSelected = selectedCourtId === court.id;
                     return (

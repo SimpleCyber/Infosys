@@ -5,7 +5,7 @@ import { MealWindow } from "@/types/menu";
 import { verifyAdminPassword, uploadMenuPhoto } from "@/lib/api";
 
 const PRESET_FOOD_COURTS = [
-  { id: "magna", name: "Meghna (North Zone)" },
+  { id: "magna", name: "Magna (North Zone)" },
   { id: "arena", name: "Arena (Sports Complex)" },
   { id: "oasis", name: "Oasis (South Zone)" },
   { id: "maitri", name: "Maitri (Main Dining)" },

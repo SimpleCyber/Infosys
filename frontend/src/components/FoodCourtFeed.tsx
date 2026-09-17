@@ -24,8 +24,8 @@ export interface CampusFoodCourtMeta {
 export const ALL_8_CAMPUS_FOOD_COURTS: CampusFoodCourtMeta[] = [
   {
     id: "magna",
-    name: "Meghna",
-    shortName: "Meghna",
+    name: "Magna",
+    shortName: "Magna",
     icon: <PixelBurgerIcon className="w-9 h-9 sm:w-10 sm:h-10" />,
     bg: "bg-[#FEEDD7]",
     border: "border-amber-200/60",
@@ -142,8 +142,8 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
     );
   };
 
-  // Dynamic Section Title: e.g. "Meghna" instead of "Meghna Menus", or "All Food Courts"
-  let sectionTitle = "Meghna";
+  // Dynamic Section Title: e.g. "Magna" instead of "Magna Menus", or "All Food Courts"
+  let sectionTitle = "Magna";
   if (isSearching) {
     sectionTitle = `Results for "${searchQuery}"`;
   } else if (selectedCourtId === null) {
@@ -180,13 +180,13 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
             onClick={() => onSelectCourt(selectedCourtId === null ? "magna" : null)}
             className="text-[13px] font-bold text-[#1E5B7B] hover:opacity-80 transition-opacity"
           >
-            {selectedCourtId === null ? "Show Meghna" : "Show all"}
+            {selectedCourtId === null ? "Show Magna" : "Show all"}
           </button>
         </div>
 
         {/* Scrollable Row of 8 Food Courts with Safe Padding & Steady/Constant Hover */}
         <div className="relative -mx-5 px-5">
-          <div className="flex space-x-3.5 overflow-x-auto pt-3 pb-3 px-1 scroll-px-1 scrollbar-none snap-x snap-mandatory">
+          <div className="flex space-x-3.5 overflow-x-auto pt-3 pb-3 px-1 scroll-px-1 scrollbar-none no-scrollbar snap-x snap-mandatory">
             {ALL_8_CAMPUS_FOOD_COURTS.map((court) => {
               const isSelected = selectedCourtId === court.id;
               return (
@@ -323,7 +323,7 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
                     </div>
                   ) : (
                     <div
-                      className="flex space-x-3.5 overflow-x-auto px-5 scroll-px-5 pb-3 scrollbar-none snap-x snap-mandatory"
+                      className="flex space-x-3.5 overflow-x-auto px-5 scroll-px-5 pb-3 scrollbar-none no-scrollbar snap-x snap-mandatory"
                       style={{ scrollPaddingLeft: "20px", scrollPaddingRight: "20px" }}
                     >
                       {courtOutlets.map((outlet) => (
@@ -426,7 +426,7 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
 
               return (
                 <div
-                  className="flex space-x-3.5 overflow-x-auto px-5 scroll-px-5 pb-3 scrollbar-none snap-x snap-mandatory"
+                  className="flex space-x-3.5 overflow-x-auto px-5 scroll-px-5 pb-3 scrollbar-none no-scrollbar snap-x snap-mandatory"
                   style={{ scrollPaddingLeft: "20px", scrollPaddingRight: "20px" }}
                 >
                   {displayedOutlets.map((outlet) => (

@@ -10,9 +10,32 @@ on:
 jobs:
   cleanup:
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
       - name: Trigger Purge Cleanup API
         run: |
-          curl -X POST "${{ secrets.BACKEND_API_URL }}/api/cron/cleanup" \
+          RAW_URL="${{ secrets.BACKEND_API_URL }}"
+          # Fallback to direct production Vercel backend if secret is not set
+          if [ -z "$RAW_URL" ]; then
+            RAW_URL="https://infosys-t54l.vercel.app"
+          fi
+
+          # Normalize URL: strip trailing slash and redundant /api
+          BASE_URL="${RAW_URL%/}"
+          BASE_URL="${BASE_URL%/api}"
+          TARGET_URL="${BASE_URL}/api/cron/cleanup"
+
+          SECRET_TOKEN="${{ secrets.CRON_SECRET }}"
+          if [ -z "$SECRET_TOKEN" ]; then
+            SECRET_TOKEN="supercronsecret2026"
+          fi
+
+          echo "🚀 Triggering 6-hour purge cleanup at: $TARGET_URL"
+          RESPONSE=$(curl -s -S -i -X POST "$TARGET_URL" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+            -H "Authorization: Bearer $SECRET_TOKEN" \
+            --connect-timeout 10 \
+            --max-time 30)
+
+          echo "$RESPONSE"
+

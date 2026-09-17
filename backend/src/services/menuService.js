@@ -3,7 +3,7 @@ import { ref, get, set, remove, child } from 'firebase/database';
 import { upstashRedis } from '../config/redis.js';
 
 export const CAMPUS_FOOD_COURTS = [
-  { id: 'magna', name: 'Meghna', description: 'North Zone Court' },
+  { id: 'magna', name: 'Magna', description: 'North Zone Court' },
   { id: 'arena', name: 'Arena', description: 'Sports Complex Dining' },
   { id: 'oasis', name: 'Oasis', description: 'South Zone Court' },
   { id: 'maitri', name: 'Maitri', description: 'Main Dining Hall' },
