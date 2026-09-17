@@ -139,6 +139,17 @@ export default function Home() {
         {/* Clean Outlet Detail Modal */}
         <RestaurantBookingModal
           outlet={selectedOutlet}
+          relatedOutlets={
+            selectedOutlet
+              ? feedData.data.foodCourts
+                  .find((fc) => fc.foodCourtId === selectedOutlet.foodCourtId)
+                  ?.outlets.filter(
+                    (o) =>
+                      o.outletName.trim().toLowerCase() ===
+                      selectedOutlet.outletName.trim().toLowerCase()
+                  ) || [selectedOutlet]
+              : []
+          }
           onClose={() => setSelectedOutlet(null)}
         />
 

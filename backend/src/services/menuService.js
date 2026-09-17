@@ -142,7 +142,8 @@ export const saveOutletMenu = async (menuData) => {
   }
 
   const sanitizedOutlet = outletName.toLowerCase().replace(/[^a-z0-9]/g, '_');
-  const menuId = `${foodCourtId}_${sanitizedOutlet}_${mealWindow}_${todayStr}`;
+  const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const menuId = `${foodCourtId}_${sanitizedOutlet}_${mealWindow}_${todayStr}_${uniqueSuffix}`;
 
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;

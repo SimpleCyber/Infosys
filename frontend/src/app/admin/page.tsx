@@ -10,7 +10,8 @@ import { ALL_8_CAMPUS_FOOD_COURTS } from "@/components/FoodCourtFeed";
 const SUGGESTED_OUTLETS = [
   "Shivam Caterers",
   "Purple Grapes",
-  "Annapurna Meals",
+  "Royal Caterers",
+  "Fit Bite",
 ];
 
 export default function AdminPage() {
@@ -27,7 +28,7 @@ export default function AdminPage() {
   const [outletName, setOutletName] = useState("");
   const [mealWindow, setMealWindow] = useState<MealWindow>("lunch");
   const [isFixedMenu, setIsFixedMenu] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -76,14 +77,29 @@ export default function AdminPage() {
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const fileList = Array.from(files);
+      const readers = fileList.map((file) => {
+        return new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve(reader.result as string);
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+
+      Promise.all(readers).then((newImages) => {
+        setImagePreviews((prev) => [...prev, ...newImages]);
+      });
+      // Reset input value so same files can be re-selected if desired
+      e.target.value = "";
     }
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    setImagePreviews((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,13 +108,15 @@ export default function AdminPage() {
       setStatusMessage("Please enter or select an outlet name");
       return;
     }
-    if (!imagePreview) {
-      setStatusMessage("Please take or upload a menu photo");
+    if (imagePreviews.length === 0) {
+      setStatusMessage("Please take or upload at least one menu photo");
       return;
     }
 
     setIsSubmitting(true);
-    setStatusMessage("Uploading menu & updating live campus feed...");
+    setStatusMessage(
+      `Uploading ${imagePreviews.length} menu photo${imagePreviews.length > 1 ? "s" : ""} & updating live feed...`
+    );
 
     try {
       await uploadMenuPhoto({
@@ -106,12 +124,15 @@ export default function AdminPage() {
         foodCourtId: selectedCourtId,
         outletName: outletName.trim(),
         mealWindow,
-        imageUrl: imagePreview,
+        imageUrls: imagePreviews,
+        imageUrl: imagePreviews[0],
         isFixedMenu,
       });
 
       setIsSuccess(true);
-      setStatusMessage("Menu uploaded successfully! Live feed updated.");
+      setStatusMessage(
+        `${imagePreviews.length} menu photo${imagePreviews.length > 1 ? "s" : ""} uploaded successfully! Live feed updated.`
+      );
       setTimeout(() => {
         router.push("/");
       }, 1400);
@@ -157,14 +178,6 @@ export default function AdminPage() {
 
           {/* Title Row: Clean, Prominent & Uncluttered */}
           <div className="space-y-0.5">
-            <div className="flex items-center space-x-2">
-              <span className="text-[10px] font-black uppercase tracking-wider text-[#1E4D3E] bg-emerald-50 border border-emerald-200/70 px-2 py-0.5 rounded-md">
-                Manager Portal
-              </span>
-              <span className="text-[11px] font-semibold text-neutral-500">
-                Infosys Mysore Campus
-              </span>
-            </div>
             <h1 className="text-xl sm:text-[22px] font-black text-neutral-900 tracking-tight leading-tight">
               Daily Menu Upload
             </h1>
@@ -222,17 +235,7 @@ export default function AdminPage() {
               scrollbarWidth: "none",
               msOverflowStyle: "none",
             }}
-          >
-            {/* 6-Hour Menu Lifecycle Notice Banner */}
-            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50/60 border border-amber-200/80 flex items-start space-x-2.5 shadow-2xs">
-              <span className="text-base flex-shrink-0 mt-0.5">⏱️</span>
-              <div className="space-y-0.5">
-                <p className="text-xs font-black text-amber-950 tracking-tight">6-Hour Menu Rotation Cycle</p>
-                <p className="text-[11px] text-amber-900/80 leading-relaxed font-medium">
-                  Uploaded menu images remain live for this 6-hour window and are automatically purged by the campus cron job every 6 hours.
-                </p>
-              </div>
-            </div>
+          >          
 
             {/* 1. Food Court Selection: Scrollable Carousel with Safe Padding to Prevent Any Ring Cropping */}
             <div className="space-y-2">
@@ -295,7 +298,7 @@ export default function AdminPage() {
                 type="text"
                 value={outletName}
                 onChange={(e) => setOutletName(e.target.value)}
-                placeholder='e.g., "Shivam Caterers", "Purple Grapes"...'
+                placeholder='e.g., "Royal Caterers", "Fit Bite"...'
                 className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 shadow-xs"
                 required
               />
@@ -383,28 +386,77 @@ export default function AdminPage() {
 
             {/* 5. Menu Photo Upload */}
             <div className="space-y-2">
-              <label className="text-xs font-black text-neutral-800 tracking-tight uppercase">
-                5. Take / Upload Menu Photo:
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black text-neutral-800 tracking-tight uppercase">
+                  5. Upload Menu Photos:
+                </label>
+                {imagePreviews.length > 0 && (
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                    {imagePreviews.length} photo{imagePreviews.length > 1 ? "s" : ""} selected
+                  </span>
+                )}
+              </div>
 
-              {imagePreview ? (
-                <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-neutral-950 h-52 shadow-sm">
-                  <img
-                    src={imagePreview}
-                    alt="Menu preview"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                  <button
-                    type="button"
-                    onClick={() => setImagePreview(null)}
-                    className="absolute top-3 right-3 bg-black/70 hover:bg-black/90 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs backdrop-blur-sm transition-colors"
-                    title="Remove and retake"
-                  >
-                    ✕
-                  </button>
-                  <div className="absolute bottom-3 left-3 text-white text-xs font-bold">
-                    ✓ Photo Ready for {activeCourt.name}
+              {imagePreviews.length > 0 ? (
+                <div className="space-y-3">
+                  {/* Photo Cards Grid */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {imagePreviews.map((img, idx) => (
+                      <div
+                        key={idx}
+                        className="relative rounded-2xl overflow-hidden border border-slate-200 bg-neutral-950 aspect-[4/3] shadow-xs group"
+                      >
+                        <img
+                          src={img}
+                          alt={`Menu preview ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none"></div>
+
+                        {/* Photo Number Badge */}
+                        <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-xs text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md">
+                          #{idx + 1}
+                        </div>
+
+                        {/* Remove Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(idx)}
+                          className="absolute top-2 right-2 bg-rose-600/90 hover:bg-rose-700 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs backdrop-blur-sm shadow-sm transition-transform active:scale-90"
+                          title="Remove photo"
+                        >
+                          ✕
+                        </button>
+
+                        <div className="absolute bottom-2 left-2 text-white/90 text-[10px] font-bold truncate pr-2">
+                          Photo {idx + 1} of {imagePreviews.length}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add More Photos Action Row */}
+                  <div className="flex items-center space-x-2">
+                    <label className="flex-1 border border-dashed border-emerald-400 bg-emerald-50/50 hover:bg-emerald-50 rounded-2xl py-2.5 px-3 flex items-center justify-center space-x-1.5 cursor-pointer transition-all active:scale-98">
+                      <span className="text-sm">➕</span>
+                      <span className="text-xs font-bold text-emerald-800">Add More Photos</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={() => setImagePreviews([])}
+                      className="px-3 py-2.5 text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-2xl border border-rose-200/60 transition-colors"
+                      title="Remove all photos"
+                    >
+                      Clear
+                    </button>
                   </div>
                 </div>
               ) : (
@@ -414,15 +466,16 @@ export default function AdminPage() {
                   </div>
                   <div className="text-center">
                     <p className="text-xs font-bold text-neutral-800">
-                      Tap to photograph or select menu image
+                      Tap to photograph or select menu photos
                     </p>
                     <p className="text-[10px] text-neutral-400">
-                      Supports phone camera & file upload (JPG, PNG, WebP)
+                      Supports multiple photos under same outlet (JPG, PNG, WebP)
                     </p>
                   </div>
                   <input
                     type="file"
                     accept="image/*"
+                    multiple
                     capture="environment"
                     onChange={handleImageChange}
                     className="hidden"
@@ -445,10 +498,14 @@ export default function AdminPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isSubmitting || !imagePreview || !outletName.trim()}
+              disabled={isSubmitting || imagePreviews.length === 0 || !outletName.trim()}
               className="w-full py-4 rounded-2xl bg-neutral-900 hover:bg-neutral-800 text-white font-black text-xs uppercase tracking-wider shadow-lg transition-all flex items-center justify-center space-x-2 disabled:opacity-50 active:scale-98"
             >
-              <span>{isSubmitting ? "Publishing Menu..." : `Publish Menu to ${activeCourt.name}`}</span>
+              <span>
+                {isSubmitting
+                  ? "Publishing Menu..."
+                  : `Publish ${imagePreviews.length > 1 ? `${imagePreviews.length} Photos` : "Menu"} to ${activeCourt.name}`}
+              </span>
               <span>→</span>
             </button>
           </form>

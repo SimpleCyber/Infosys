@@ -17,24 +17,56 @@ export interface CampusOutletCard {
 
 interface OutletDetailModalProps {
   outlet: CampusOutletCard | null;
+  relatedOutlets?: CampusOutletCard[];
   onClose: () => void;
   onZoomImage?: (menu: OutletMenu) => void;
 }
 
 export const RestaurantBookingModal: React.FC<OutletDetailModalProps> = ({
   outlet,
+  relatedOutlets = [],
   onClose,
   onZoomImage,
 }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const [hasImageError, setHasImageError] = useState(false);
 
+  // Sync current index when outlet opens or changes
+  React.useEffect(() => {
+    if (outlet && relatedOutlets.length > 0) {
+      const idx = relatedOutlets.findIndex((o) => o.id === outlet.id);
+      setCurrentIndex(idx >= 0 ? idx : 0);
+    } else {
+      setCurrentIndex(0);
+    }
+    setIsZoomed(false);
+    setHasImageError(false);
+  }, [outlet, relatedOutlets]);
+
   if (!outlet) return null;
 
-  const isLunch = outlet.mealWindow === "lunch";
+  const photosList = relatedOutlets.length > 0 ? relatedOutlets : [outlet];
+  const activeOutlet = photosList[currentIndex] || outlet;
+
+  const isLunch = activeOutlet.mealWindow === "lunch";
   const timingText = isLunch
     ? "12:00 PM – 3:30 PM (Serving Lunch)"
     : "7:00 PM – 10:30 PM (Serving Dinner)";
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setHasImageError(false);
+    setIsZoomed(false);
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : photosList.length - 1));
+  };
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setHasImageError(false);
+    setIsZoomed(false);
+    setCurrentIndex((prev) => (prev < photosList.length - 1 ? prev + 1 : 0));
+  };
 
   return (
     <div
@@ -46,7 +78,7 @@ export const RestaurantBookingModal: React.FC<OutletDetailModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Menu Board Image */}
-        <div className="relative h-64 sm:h-72 w-full bg-neutral-950 flex-shrink-0 group overflow-hidden">
+        <div className="relative h-64 sm:h-72 w-full bg-neutral-950 flex-shrink-0 group overflow-hidden select-none">
           {hasImageError ? (
             <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center p-6 text-center space-y-2 select-none">
               <span className="text-4xl">⏱️</span>
@@ -57,8 +89,8 @@ export const RestaurantBookingModal: React.FC<OutletDetailModalProps> = ({
             </div>
           ) : (
             <img
-              src={outlet.imageUrl}
-              alt={outlet.outletName}
+              src={activeOutlet.imageUrl}
+              alt={activeOutlet.outletName}
               onError={() => setHasImageError(true)}
               onClick={() => setIsZoomed(!isZoomed)}
               className={`w-full h-full object-cover transition-all duration-300 cursor-zoom-in ${
@@ -71,22 +103,66 @@ export const RestaurantBookingModal: React.FC<OutletDetailModalProps> = ({
           {/* Close Button at top right */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/60 text-white hover:bg-black/80 flex items-center justify-center font-bold text-sm backdrop-blur-md transition-colors shadow-sm"
+            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/60 text-white hover:bg-black/80 flex items-center justify-center font-bold text-sm backdrop-blur-md transition-colors shadow-sm z-10"
           >
             ✕
           </button>
 
           {/* Menu Type Tag */}
-          <div className="absolute top-4 left-4">
+          <div className="absolute top-4 left-4 z-10">
             <span className="text-[11px] font-extrabold px-3 py-1 rounded-full bg-white/95 text-neutral-900 shadow-md backdrop-blur-sm">
-              {outlet.isFixedMenu ? "📌 Fixed Outlet Menu" : "🔥 Changing Daily Special"}
+              {activeOutlet.isFixedMenu ? "📌 Fixed Outlet Menu" : "🔥 Changing Daily Special"}
             </span>
           </div>
 
-          {/* Image hint */}
-          <div className="absolute bottom-3 right-4">
+          {/* Multi-Photo Carousel Arrows (when > 1 photo exists) */}
+          {photosList.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={handlePrev}
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center text-lg backdrop-blur-md transition-all active:scale-90 shadow-md z-10"
+                title="Previous photo"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center text-lg backdrop-blur-md transition-all active:scale-90 shadow-md z-10"
+                title="Next photo"
+              >
+                ›
+              </button>
+
+              {/* Photo Counter Pill & Dots */}
+              <div className="absolute bottom-3 left-4 flex items-center space-x-2 z-10">
+                <span className="text-[10px] font-black text-white bg-black/70 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-white/20 shadow-xs">
+                  Photo {currentIndex + 1} / {photosList.length}
+                </span>
+                <div className="flex items-center space-x-1">
+                  {photosList.map((_, dotIdx) => (
+                    <button
+                      key={dotIdx}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentIndex(dotIdx);
+                      }}
+                      className={`h-1.5 rounded-full transition-all ${
+                        dotIdx === currentIndex ? "w-4 bg-white" : "w-1.5 bg-white/50"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Image zoom hint */}
+          <div className="absolute bottom-3 right-4 z-10">
             <span className="text-[10px] text-white/80 font-semibold bg-black/60 px-2 py-0.5 rounded-full backdrop-blur-sm">
-              Tap photo to zoom
+              Tap to zoom
             </span>
           </div>
         </div>
@@ -98,7 +174,7 @@ export const RestaurantBookingModal: React.FC<OutletDetailModalProps> = ({
             <div className="flex items-center space-x-2 mb-1.5">
               <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-extrabold border border-emerald-200/60">
                 <span>📍</span>
-                <span>{outlet.foodCourtName}</span>
+                <span>{activeOutlet.foodCourtName}</span>
               </span>
               <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-900 text-[11px] font-extrabold border border-amber-200/60">
                 <span>{isLunch ? "Lunch Menu" : "Dinner Menu"}</span>
@@ -106,11 +182,11 @@ export const RestaurantBookingModal: React.FC<OutletDetailModalProps> = ({
             </div>
 
             <h2 className="text-2xl font-black text-neutral-900 tracking-tight">
-              {outlet.outletName}
+              {activeOutlet.outletName}
             </h2>
             <p className="text-xs text-neutral-500 font-medium mt-1 leading-relaxed">
-              {outlet.description ||
-                `Daily prepared fresh menu items served at ${outlet.foodCourtName} food court on Infosys Mysore Campus.`}
+              {activeOutlet.description ||
+                `Daily prepared fresh menu items served at ${activeOutlet.foodCourtName} food court on Infosys Mysore Campus.`}
             </p>
           </div>
 
@@ -129,7 +205,7 @@ export const RestaurantBookingModal: React.FC<OutletDetailModalProps> = ({
           <div className="flex items-center justify-between text-xs text-neutral-400 font-medium pt-1 px-1">
             <span>Last Updated:</span>
             <span className="text-neutral-700 font-semibold">
-              {outlet.updatedAtFormatted || "Today"}
+              {activeOutlet.updatedAtFormatted || "Today"}
             </span>
           </div>
         </div>

@@ -18,7 +18,8 @@ const PRESET_FOOD_COURTS = [
 const SUGGESTED_OUTLETS = [
   "Shivam Caterers",
   "Purple Grapes",
-  "Annapurna",
+  "Royal Caterers",
+  "Fit Bite",
 ];
 
 interface AdminModalProps {
@@ -37,7 +38,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
   const [outletName, setOutletName] = useState("");
   const [mealWindow, setMealWindow] = useState<MealWindow>("lunch");
   const [isFixedMenu, setIsFixedMenu] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -68,14 +69,28 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const fileList = Array.from(files);
+      const readers = fileList.map((file) => {
+        return new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve(reader.result as string);
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+
+      Promise.all(readers).then((newImages) => {
+        setImagePreviews((prev) => [...prev, ...newImages]);
+      });
+      e.target.value = "";
     }
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    setImagePreviews((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,8 +99,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
       setStatusMessage("Please enter or select an outlet name");
       return;
     }
-    if (!imagePreview) {
-      setStatusMessage("Please take or upload a menu photo");
+    if (imagePreviews.length === 0) {
+      setStatusMessage("Please take or upload at least one menu photo");
       return;
     }
 
@@ -98,7 +113,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
         foodCourtId,
         outletName: outletName.trim(),
         mealWindow,
-        imageUrl: imagePreview,
+        imageUrls: imagePreviews,
+        imageUrl: imagePreviews[0],
         isFixedMenu,
       });
 
@@ -108,7 +124,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
         onClose();
         setIsAuthenticated(false);
         setPassword("");
-        setImagePreview(null);
+        setImagePreviews([]);
         setOutletName("");
       }, 1000);
     } catch (err: any) {
@@ -197,9 +213,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
                 <span className="text-sm flex-shrink-0 mt-0.5">⏱️</span>
                 <div className="space-y-0.5">
                   <p className="text-[11px] font-black text-amber-950">6-Hour Menu Rotation Cycle</p>
-                  <p className="text-[10px] text-amber-900/80 leading-relaxed font-medium">
-                    Uploaded menu photos are active for this 6-hour window and automatically reset every 6 hours by the campus cron job.
-                  </p>
+                    <p className="text-[10px] text-amber-900/80 leading-relaxed font-medium">
+                      Uploaded menu photos are active for this 6-hour window and automatically reset every 6 hours by the automated cron job.
+                    </p>
                 </div>
               </div>
 
@@ -226,7 +242,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
                   type="text"
                   value={outletName}
                   onChange={(e) => setOutletName(e.target.value)}
-                  placeholder="e.g. Shivam Caterers, Purple Grapes..."
+                  placeholder="e.g. Royal Caterers, Fit Bite..."
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
                 />
                 <div className="flex flex-wrap gap-1 pt-1">
@@ -287,37 +303,63 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
 
               {/* Menu Photo Upload */}
               <div className="space-y-1">
-                <label className="font-bold text-slate-700">3. Take Photo / Upload Image</label>
-                <div className="border-2 border-dashed border-slate-200 hover:border-slate-300 bg-slate-50 rounded-2xl p-2.5 text-center">
-                  {imagePreview ? (
-                    <div className="space-y-1">
-                      <img
-                        src={imagePreview}
-                        alt="Menu preview"
-                        className="max-h-28 mx-auto rounded-lg object-contain border border-slate-200"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setImagePreview(null)}
-                        className="text-[10px] text-rose-500 font-bold hover:underline"
-                      >
-                        Remove photo
-                      </button>
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700">3. Take Photo / Upload Images</label>
+                  {imagePreviews.length > 0 && (
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      {imagePreviews.length} photo{imagePreviews.length > 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
+
+                {imagePreviews.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      {imagePreviews.map((img, idx) => (
+                        <div key={idx} className="relative rounded-xl overflow-hidden border border-slate-200 aspect-[4/3] bg-black">
+                          <img src={img} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(idx)}
+                            className="absolute top-1 right-1 bg-rose-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm"
+                          >
+                            ✕
+                          </button>
+                          <span className="absolute bottom-1 left-1 bg-black/70 text-white text-[9px] px-1.5 py-0.5 rounded">
+                            #{idx + 1}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ) : (
-                    <label className="cursor-pointer space-y-1 block py-2">
-                      <div className="text-xl">📷</div>
-                      <p className="text-xs text-slate-700 font-bold">Tap to capture or upload</p>
+
+                    <label className="block text-center py-2 px-3 rounded-xl border border-dashed border-emerald-400 bg-emerald-50/50 hover:bg-emerald-50 cursor-pointer text-[11px] font-bold text-emerald-800 transition-colors">
+                      ➕ Add Another Photo
                       <input
                         type="file"
                         accept="image/*"
+                        multiple
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-slate-200 hover:border-slate-300 bg-slate-50 rounded-2xl p-2.5 text-center">
+                    <label className="cursor-pointer space-y-1 block py-2">
+                      <div className="text-xl">📷</div>
+                      <p className="text-xs text-slate-700 font-bold">Tap to capture or upload</p>
+                      <p className="text-[10px] text-slate-400">Supports multiple photos</p>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
                         capture="environment"
                         onChange={handleImageChange}
                         className="hidden"
                       />
                     </label>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
               {statusMessage && (

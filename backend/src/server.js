@@ -96,30 +96,39 @@ app.post('/api/admin/verify', (req, res) => {
 
 // Admin Upload Menu
 app.post('/api/admin/upload-menu', async (req, res) => {
-  const { password, foodCourtId, outletName, mealWindow, imageUrl, isFixedMenu } = req.body;
+  const { password, foodCourtId, outletName, mealWindow, imageUrl, imageUrls, isFixedMenu } = req.body;
   const expectedPassword = process.env.ADMIN_PASSWORD || 'infosys123';
 
   if (password !== expectedPassword) {
     return res.status(401).json({ error: 'Unauthorized. Invalid admin password.' });
   }
 
-  if (!foodCourtId || !outletName || !mealWindow || !imageUrl) {
-    return res.status(400).json({ error: 'Missing required fields: foodCourtId, outletName, mealWindow, imageUrl' });
+  const images = Array.isArray(imageUrls) && imageUrls.length > 0
+    ? imageUrls
+    : (imageUrl ? [imageUrl] : []);
+
+  if (!foodCourtId || !outletName || !mealWindow || images.length === 0) {
+    return res.status(400).json({ error: 'Missing required fields: foodCourtId, outletName, mealWindow, imageUrl(s)' });
   }
 
   try {
-    const savedMenu = await saveOutletMenu({
-      foodCourtId,
-      outletName,
-      mealWindow,
-      imageUrl,
-      isFixedMenu: Boolean(isFixedMenu),
-    });
+    const savedMenus = [];
+    for (const img of images) {
+      const savedMenu = await saveOutletMenu({
+        foodCourtId,
+        outletName,
+        mealWindow,
+        imageUrl: img,
+        isFixedMenu: Boolean(isFixedMenu),
+      });
+      savedMenus.push(savedMenu);
+    }
 
     res.json({
       success: true,
-      message: 'Menu updated successfully and Redis cache purged',
-      menu: savedMenu,
+      message: `${savedMenus.length} menu photo(s) updated successfully and Redis cache purged`,
+      menu: savedMenus[0],
+      menus: savedMenus,
     });
   } catch (error) {
     console.error('[Upload Menu Error]', error);
