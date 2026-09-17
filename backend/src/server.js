@@ -152,7 +152,7 @@ app.delete('/api/admin/menu/:id', async (req, res) => {
 // Automated Cron Cleanup Route (Purge Expired Menus)
 app.post('/api/cron/cleanup', async (req, res) => {
   const authHeader = req.headers.authorization;
-  const secretKey = process.env.CRON_SECRET || 'supercronsecret2026';
+  const secretKey = process.env.CRON_SECRET;
 
   if (authHeader !== `Bearer ${secretKey}` && req.body?.secret !== secretKey) {
     return res.status(401).json({ error: 'Unauthorized cron request' });
