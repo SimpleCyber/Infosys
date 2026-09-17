@@ -1,0 +1,146 @@
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import {
+  CAMPUS_FOOD_COURTS,
+  getMenuFeed,
+  saveOutletMenu,
+  purgeExpiredMenus,
+  getCurrentMealWindow,
+  getTodayDateString,
+} from './services/menuService.js';
+import { rtdb } from './config/firebase.js';
+import { ref, remove } from 'firebase/database';
+import { upstashRedis } from './config/redis.js';
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Enable CORS and increase body limit for base64 image uploads (10MB)
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// Health Check
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'Infosys Food Court Menu API',
+    currentMealWindow: getCurrentMealWindow(),
+    todayDate: getTodayDateString(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// List Campus Food Courts
+app.get('/api/food-courts', (req, res) => {
+  res.json({ foodCourts: CAMPUS_FOOD_COURTS });
+});
+
+// GET Menu Feed (Redis Cached for High Concurrency)
+app.get('/api/menus/feed', async (req, res) => {
+  try {
+    const mealWindow = req.query.window || null;
+    const feed = await getMenuFeed(mealWindow);
+    res.json(feed);
+  } catch (error) {
+    console.error('[Feed Fetch Error]', error);
+    res.status(500).json({ error: 'Failed to fetch menu feed', message: error.message });
+  }
+});
+
+// Admin Password Verification
+app.post('/api/admin/verify', (req, res) => {
+  const { password } = req.body;
+  const expectedPassword = process.env.ADMIN_PASSWORD || 'infosys123';
+  
+  if (password === expectedPassword) {
+    res.json({ success: true, message: 'Admin authenticated' });
+  } else {
+    res.status(401).json({ success: false, error: 'Invalid password' });
+  }
+});
+
+// Admin Upload Menu
+app.post('/api/admin/upload-menu', async (req, res) => {
+  const { password, foodCourtId, outletName, mealWindow, imageUrl, isFixedMenu } = req.body;
+  const expectedPassword = process.env.ADMIN_PASSWORD || 'infosys123';
+
+  if (password !== expectedPassword) {
+    return res.status(401).json({ error: 'Unauthorized. Invalid admin password.' });
+  }
+
+  if (!foodCourtId || !outletName || !mealWindow || !imageUrl) {
+    return res.status(400).json({ error: 'Missing required fields: foodCourtId, outletName, mealWindow, imageUrl' });
+  }
+
+  try {
+    const savedMenu = await saveOutletMenu({
+      foodCourtId,
+      outletName,
+      mealWindow,
+      imageUrl,
+      isFixedMenu: Boolean(isFixedMenu),
+    });
+
+    res.json({
+      success: true,
+      message: 'Menu updated successfully and Redis cache purged',
+      menu: savedMenu,
+    });
+  } catch (error) {
+    console.error('[Upload Menu Error]', error);
+    res.status(500).json({ error: 'Failed to save menu', message: error.message });
+  }
+});
+
+// Admin Delete Menu
+app.delete('/api/admin/menu/:id', async (req, res) => {
+  const { password } = req.body;
+  const expectedPassword = process.env.ADMIN_PASSWORD || 'infosys123';
+
+  if (password !== expectedPassword) {
+    return res.status(401).json({ error: 'Unauthorized. Invalid admin password.' });
+  }
+
+  const { id } = req.params;
+  try {
+    await remove(ref(rtdb, `menus/${id}`));
+    const todayStr = getTodayDateString();
+    await upstashRedis.del(`menus:feed:${todayStr}:lunch`);
+    await upstashRedis.del(`menus:feed:${todayStr}:dinner`);
+
+    res.json({ success: true, message: `Menu ${id} deleted` });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete menu', message: error.message });
+  }
+});
+
+// Automated Cron Cleanup Route (Purge Expired Menus)
+app.post('/api/cron/cleanup', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  const secretKey = process.env.CRON_SECRET || 'supercronsecret2026';
+
+  if (authHeader !== `Bearer ${secretKey}` && req.body?.secret !== secretKey) {
+    return res.status(401).json({ error: 'Unauthorized cron request' });
+  }
+
+  try {
+    const result = await purgeExpiredMenus();
+    res.json({
+      success: true,
+      message: 'Automated cleanup executed',
+      purgedCount: result.purgedCount,
+      timestamp: result.timestamp,
+    });
+  } catch (error) {
+    console.error('[Cron Cleanup Error]', error);
+    res.status(500).json({ error: 'Failed to execute cleanup', message: error.message });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`🚀 Infosys Menu API Server listening on port ${PORT}`);
+});
