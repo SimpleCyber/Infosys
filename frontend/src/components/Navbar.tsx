@@ -6,11 +6,13 @@ import { MealWindow } from "@/types/menu";
 interface NavbarProps {
   currentWindow: MealWindow;
   onWindowChange: (window: MealWindow) => void;
+  visitorCount?: number;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   currentWindow,
   onWindowChange,
+  visitorCount = 1,
 }) => {
   const currentDateFormatted = new Date().toLocaleDateString("en-US", {
     weekday: "short",
@@ -19,19 +21,30 @@ export const Navbar: React.FC<NavbarProps> = ({
   });
 
   return (
-    <header className="bg-gradient-to-b from-[#FDF1DF] via-[#FDF3E3] to-[#FAF8F5] pt-5 pb-5 px-5 rounded-b-[32px] border-b border-amber-100/50 shadow-xs space-y-4 select-none">
-      {/* Top Bar: Campus Location Tag & Today's Date */}
+    <header className="bg-gradient-to-b from-[#FDF1DF] via-[#FDF3E3] to-[#FAF8F5] pt-5 pb-5 px-5 rounded-b-[32px] border-b border-amber-100/50 shadow-xs space-y-4 select-none flex-shrink-0">
+      {/* Top Bar: Campus Location Tag & 24h Activity + Date */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2 bg-white/70 backdrop-blur-sm px-3 py-1 rounded-full border border-amber-200/50 shadow-2xs">
+        <div className="flex items-center space-x-1.5 bg-white/80 backdrop-blur-sm px-2.5 py-1 rounded-full border border-amber-200/50 shadow-2xs">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span className="text-[11px] font-extrabold text-neutral-800 tracking-tight">
-            Infosys Mysore Campus
+            Mysore Campus
           </span>
         </div>
 
-        <span className="text-[11px] font-bold text-neutral-500">
-          {currentDateFormatted}
-        </span>
+        <div className="flex items-center space-x-2">
+          {/* 24-hour clock visitor counter */}
+          <div
+            className="flex items-center space-x-1 bg-white/80 backdrop-blur-sm px-2.5 py-1 rounded-full border border-amber-200/60 shadow-2xs text-[11px] font-black text-amber-950 select-none"
+            title="Total users in the last 24 hours"
+          >
+            <span className="text-xs">👤</span>
+            <span>{visitorCount} / 24h</span>
+          </div>
+
+          <span className="text-[11px] font-bold text-neutral-500">
+            {currentDateFormatted}
+          </span>
+        </div>
       </div>
 
       {/* Main Hero Headline & Subtitle */}

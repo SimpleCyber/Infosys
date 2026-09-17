@@ -17,6 +17,8 @@ export interface OutletMenu {
   dateStr: string;
   updatedAt: string;
   updatedAtFormatted: string;
+  expiresAt?: string;
+  cycleHours?: number;
 }
 
 export interface FoodCourtGroup {
@@ -27,12 +29,19 @@ export interface FoodCourtGroup {
   hasActiveMenus: boolean;
 }
 
+export interface CycleMetadata {
+  intervalHours: number;
+  lastPurgedAt?: string;
+  nextPurgeAt?: string;
+}
+
 export interface FeedResponse {
   source: 'cache' | 'database';
   data: {
     dateStr: string;
     mealWindow: MealWindow;
     timestamp: string;
+    cycle?: CycleMetadata;
     foodCourts: FoodCourtGroup[];
   };
 }

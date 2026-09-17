@@ -33,8 +33,13 @@ export default function AdminPage() {
   const [statusMessage, setStatusMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
 
-  // Check saved session
+  // Auto-select meal window based on current time & check saved session
   useEffect(() => {
+    const now = new Date();
+    const istHours = new Date(now.getTime() + 5.5 * 3600000).getUTCHours();
+    const currentWindow: MealWindow = istHours >= 12 && istHours < 17 ? "lunch" : "dinner";
+    setMealWindow(currentWindow);
+
     const saved = sessionStorage.getItem("infosys_manager_auth");
     if (saved === "true") {
       setIsAuthenticated(true);
@@ -121,10 +126,10 @@ export default function AdminPage() {
     ALL_8_CAMPUS_FOOD_COURTS[0];
 
   return (
-    <div className="bg-[#D4E2DC] min-h-screen text-slate-900 flex flex-col items-center justify-center sm:p-4 selection:bg-emerald-600 selection:text-white antialiased font-sans">
-      <main className="w-full max-w-[392px] min-h-screen sm:min-h-[820px] bg-white sm:rounded-[40px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.22)] sm:border sm:border-slate-300/60 flex flex-col relative overflow-hidden">
+    <div className="bg-[#D4E2DC] h-[100dvh] sm:min-h-screen sm:h-auto text-slate-900 flex flex-col items-center justify-center sm:p-4 overflow-hidden sm:overflow-auto selection:bg-emerald-600 selection:text-white antialiased font-sans">
+      <main className="w-full max-w-[392px] h-full sm:h-auto sm:min-h-[820px] bg-white sm:rounded-[40px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.22)] sm:border sm:border-slate-300/60 flex flex-col relative overflow-hidden">
         {/* Warm, Spacious Header Bar matching App Palette */}
-        <div className="bg-gradient-to-b from-[#FDF1DF] via-[#FDF3E3] to-[#FAF8F5] pt-5 pb-4 px-5 border-b border-amber-100/60 space-y-3 shadow-xs select-none">
+        <div className="bg-gradient-to-b from-[#FDF1DF] via-[#FDF3E3] to-[#FAF8F5] pt-5 pb-4 px-5 border-b border-amber-100/60 space-y-3 shadow-xs select-none flex-shrink-0">
           {/* Top Row: Back Navigation Button & Logout Button (if authenticated) */}
           <div className="flex items-center justify-between">
             <Link
@@ -209,7 +214,22 @@ export default function AdminPage() {
           </div>
         ) : (
           /* Manager Upload Form */
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-5 pb-12">
+          <form
+            onSubmit={handleSubmit}
+            className="flex-1 overflow-y-auto overscroll-contain p-5 space-y-5 pb-[max(3rem,env(safe-area-inset-bottom))]"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
+            {/* 6-Hour Menu Lifecycle Notice Banner */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50/60 border border-amber-200/80 flex items-start space-x-2.5 shadow-2xs">
+              <span className="text-base flex-shrink-0 mt-0.5">⏱️</span>
+              <div className="space-y-0.5">
+                <p className="text-xs font-black text-amber-950 tracking-tight">6-Hour Menu Rotation Cycle</p>
+                <p className="text-[11px] text-amber-900/80 leading-relaxed font-medium">
+                  Uploaded menu images remain live for this 6-hour window and are automatically purged by the campus cron job every 6 hours.
+                </p>
+              </div>
+            </div>
+
             {/* 1. Food Court Selection: Scrollable Carousel with Safe Padding to Prevent Any Ring Cropping */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">

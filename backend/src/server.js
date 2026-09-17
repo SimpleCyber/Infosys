@@ -8,6 +8,7 @@ import {
   purgeExpiredMenus,
   getCurrentMealWindow,
   getTodayDateString,
+  getCycleStatus,
 } from './services/menuService.js';
 import { rtdb } from './config/firebase.js';
 import { ref, remove } from 'firebase/database';
@@ -24,12 +25,14 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Health Check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
+  const cycle = await getCycleStatus();
   res.json({
     status: 'ok',
     service: 'Infosys Food Court Menu API',
     currentMealWindow: getCurrentMealWindow(),
     todayDate: getTodayDateString(),
+    cycle,
     timestamp: new Date().toISOString(),
   });
 });
@@ -37,6 +40,34 @@ app.get('/api/health', (req, res) => {
 // List Campus Food Courts
 app.get('/api/food-courts', (req, res) => {
   res.json({ foodCourts: CAMPUS_FOOD_COURTS });
+});
+
+// Analytics: 24h Visitor Counter in Redis (0 Firebase writes)
+app.post('/api/analytics/visit', async (req, res) => {
+  try {
+    const todayStr = getTodayDateString();
+    const key = `analytics:visitors:${todayStr}`;
+    const count = await upstashRedis.incr(key);
+    if (count === 1) {
+      await upstashRedis.expire(key, 86400 * 2); // 48h TTL
+    }
+    res.json({ success: true, visits24h: count });
+  } catch (err) {
+    console.warn('[Analytics Track Error]', err.message);
+    res.json({ success: false, visits24h: 1 });
+  }
+});
+
+app.get('/api/analytics/stats', async (req, res) => {
+  try {
+    const todayStr = getTodayDateString();
+    const key = `analytics:visitors:${todayStr}`;
+    const count = await upstashRedis.get(key);
+    res.json({ visits24h: count ? Number(count) : 1 });
+  } catch (err) {
+    console.warn('[Analytics Stats Error]', err.message);
+    res.json({ visits24h: 1 });
+  }
 });
 
 // GET Menu Feed (Redis Cached for High Concurrency)
@@ -131,8 +162,11 @@ app.post('/api/cron/cleanup', async (req, res) => {
     const result = await purgeExpiredMenus();
     res.json({
       success: true,
-      message: 'Automated cleanup executed',
+      message: '6-Hour cycle automated cleanup executed successfully',
       purgedCount: result.purgedCount,
+      intervalHours: result.intervalHours,
+      lastPurgedAt: result.lastPurgedAt,
+      nextPurgeAt: result.nextPurgeAt,
       timestamp: result.timestamp,
     });
   } catch (error) {

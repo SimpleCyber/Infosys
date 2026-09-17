@@ -3,18 +3,38 @@ import { ref, get, set, remove, child } from 'firebase/database';
 import { upstashRedis } from '../config/redis.js';
 
 export const CAMPUS_FOOD_COURTS = [
-  { id: 'amoeba', name: 'Amoeba', description: 'Central Food Court' },
-  { id: 'maitri', name: 'Maitri', description: 'Main Dining Hall' },
-  { id: 'oasis', name: 'Oasis', description: 'South Zone Court' },
-  { id: 'enroute', name: 'Enroute', description: 'Express Food Court' },
-  { id: 'eli', name: 'ELI', description: 'Executive Lounge & Dining' },
-  { id: 'magna', name: 'Magna', description: 'North Zone Court' },
+  { id: 'magna', name: 'Meghna', description: 'North Zone Court' },
   { id: 'arena', name: 'Arena', description: 'Sports Complex Dining' },
-  { id: 'fc8', name: 'Food Court 8', description: 'Guest Food Court' },
+  { id: 'oasis', name: 'Oasis', description: 'South Zone Court' },
+  { id: 'maitri', name: 'Maitri', description: 'Main Dining Hall' },
+  { id: 'enroute', name: 'Enroute', description: 'Express Food Court' },
+  { id: 'eli', name: 'ILI', description: 'Executive Lounge & Dining' },
+  { id: 'amoeba', name: 'Ameba', description: 'Central Food Court' },
+  { id: 'fc8', name: 'FC 8', description: 'Guest Food Court' },
 ];
 
 // In-Memory store fallback in case Firebase rules block unauthenticated reads
 const memoryMenuStore = new Map();
+
+// Cycle Tracking (6-Hour Deletion Interval)
+let lastPurgedAt = new Date().toISOString();
+let nextPurgeAt = new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString();
+
+export const getCycleStatus = async () => {
+  try {
+    const cached = await upstashRedis.get('system:cycle');
+    if (cached) {
+      return typeof cached === 'string' ? JSON.parse(cached) : cached;
+    }
+  } catch (err) {
+    console.warn('[Redis Cycle Fetch Warning]', err.message);
+  }
+  return {
+    intervalHours: 6,
+    lastPurgedAt,
+    nextPurgeAt,
+  };
+};
 
 export const getCurrentMealWindow = () => {
   const now = new Date();
@@ -65,8 +85,18 @@ export const getMenuFeed = async (mealWindow = null) => {
     rawMenus = Array.from(memoryMenuStore.values());
   }
 
-  // Filter menus matching today and requested meal window
+  const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+  const currentTimeMs = Date.now();
+
+  // Filter menus matching today, requested meal window, AND strictly within 6-hour cycle
   const activeMenus = rawMenus.filter(item => {
+    // Exclude if older than 6 hours
+    if (item.updatedAt) {
+      const ageMs = currentTimeMs - new Date(item.updatedAt).getTime();
+      if (ageMs >= SIX_HOURS_MS) {
+        return false;
+      }
+    }
     return item.dateStr === todayStr && (item.mealWindow === targetWindow || item.isFixedMenu);
   });
 
@@ -82,10 +112,13 @@ export const getMenuFeed = async (mealWindow = null) => {
     };
   }).filter(group => group.hasActiveMenus);
 
+  const cycle = await getCycleStatus();
+
   const result = {
     dateStr: todayStr,
     mealWindow: targetWindow,
     timestamp: new Date().toISOString(),
+    cycle,
     foodCourts: groupedFeed,
   };
 
@@ -121,6 +154,8 @@ export const saveOutletMenu = async (menuData) => {
     timeZone: 'UTC',
   });
 
+  const expiresAt = new Date(now.getTime() + 6 * 60 * 60 * 1000).toISOString();
+
   const record = {
     id: menuId,
     foodCourtId,
@@ -130,8 +165,11 @@ export const saveOutletMenu = async (menuData) => {
     imageUrl,
     isFixedMenu: Boolean(isFixedMenu),
     dateStr: todayStr,
+    createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
     updatedAtFormatted: `Today at ${timeFormatted}`,
+    expiresAt,
+    cycleHours: 6,
   };
 
   // Save to Memory Store
@@ -173,40 +211,54 @@ export const deleteOutletMenu = async (id) => {
   }
 };
 
+/**
+ * 6-Hour Cron Deletion Purge:
+ * Deletes all existing uploaded images from memory, Firebase RTDB, and Redis.
+ * Sets cycle timestamps for the next 6-hour window.
+ */
 export const purgeExpiredMenus = async () => {
-  const todayStr = getTodayDateString();
-  let purgedCount = 0;
+  const now = new Date();
+  const nextPurge = new Date(now.getTime() + 6 * 60 * 60 * 1000);
+  lastPurgedAt = now.toISOString();
+  nextPurgeAt = nextPurge.toISOString();
 
-  for (const [key, item] of memoryMenuStore.entries()) {
-    if (!item.isFixedMenu && item.dateStr < todayStr) {
-      memoryMenuStore.delete(key);
-      purgedCount++;
-    }
-  }
+  // 1. Purge all items in local memory store
+  let purgedCount = memoryMenuStore.size;
+  memoryMenuStore.clear();
 
+  // 2. Purge all items in Firebase RTDB menus node
   try {
     const dbRef = ref(rtdb);
     const snapshot = await get(child(dbRef, 'menus'));
     if (snapshot.exists()) {
       const val = snapshot.val();
-      for (const key of Object.keys(val)) {
-        const item = val[key];
-        if (!item.isFixedMenu && item.dateStr < todayStr) {
-          await remove(ref(rtdb, `menus/${key}`));
-        }
-      }
+      const rtdbKeys = Object.keys(val);
+      purgedCount = Math.max(purgedCount, rtdbKeys.length);
+      await remove(ref(rtdb, 'menus'));
     }
   } catch (err) {
     console.warn('[Firebase Purge Warning]', err.message);
   }
 
-  // Clear Redis Feed Caches
+  // 3. Clear Redis Feed Caches and record cycle status
+  const todayStr = getTodayDateString();
   try {
     await upstashRedis.del(`menus:feed:${todayStr}:lunch`);
     await upstashRedis.del(`menus:feed:${todayStr}:dinner`);
+    await upstashRedis.set('system:cycle', JSON.stringify({
+      intervalHours: 6,
+      lastPurgedAt,
+      nextPurgeAt,
+    }), { ex: 86400 * 2 });
   } catch (err) {
-    console.error('[Redis Clear Error]', err.message);
+    console.error('[Redis Purge Error]', err.message);
   }
 
-  return { purgedCount, timestamp: new Date().toISOString() };
+  return {
+    purgedCount,
+    intervalHours: 6,
+    lastPurgedAt,
+    nextPurgeAt,
+    timestamp: now.toISOString(),
+  };
 };

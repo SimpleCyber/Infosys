@@ -27,13 +27,14 @@ export const RestaurantBookingModal: React.FC<OutletDetailModalProps> = ({
   onZoomImage,
 }) => {
   const [isZoomed, setIsZoomed] = useState(false);
+  const [hasImageError, setHasImageError] = useState(false);
 
   if (!outlet) return null;
 
   const isLunch = outlet.mealWindow === "lunch";
   const timingText = isLunch
-    ? "12:00 PM – 3:30 PM (Serving Lunch ☀️)"
-    : "7:00 PM – 10:30 PM (Serving Dinner 🌙)";
+    ? "12:00 PM – 3:30 PM (Serving Lunch)"
+    : "7:00 PM – 10:30 PM (Serving Dinner)";
 
   return (
     <div
@@ -46,14 +47,25 @@ export const RestaurantBookingModal: React.FC<OutletDetailModalProps> = ({
       >
         {/* Menu Board Image */}
         <div className="relative h-64 sm:h-72 w-full bg-neutral-950 flex-shrink-0 group overflow-hidden">
-          <img
-            src={outlet.imageUrl}
-            alt={outlet.outletName}
-            onClick={() => setIsZoomed(!isZoomed)}
-            className={`w-full h-full object-cover transition-all duration-300 cursor-zoom-in ${
-              isZoomed ? "scale-125" : "scale-100"
-            }`}
-          />
+          {hasImageError ? (
+            <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center p-6 text-center space-y-2 select-none">
+              <span className="text-4xl">⏱️</span>
+              <span className="text-base font-black text-white">Menu Image Expired</span>
+              <p className="text-xs text-slate-300 max-w-xs">
+                This image was purged in the 6-hour campus cleanup cycle. Waiting for manager update.
+              </p>
+            </div>
+          ) : (
+            <img
+              src={outlet.imageUrl}
+              alt={outlet.outletName}
+              onError={() => setHasImageError(true)}
+              onClick={() => setIsZoomed(!isZoomed)}
+              className={`w-full h-full object-cover transition-all duration-300 cursor-zoom-in ${
+                isZoomed ? "scale-125" : "scale-100"
+              }`}
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent pointer-events-none"></div>
 
           {/* Close Button at top right */}
@@ -89,7 +101,7 @@ export const RestaurantBookingModal: React.FC<OutletDetailModalProps> = ({
                 <span>{outlet.foodCourtName}</span>
               </span>
               <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-900 text-[11px] font-extrabold border border-amber-200/60">
-                <span>{isLunch ? "☀️ Lunch Menu" : "🌙 Dinner Menu"}</span>
+                <span>{isLunch ? "Lunch Menu" : "Dinner Menu"}</span>
               </span>
             </div>
 

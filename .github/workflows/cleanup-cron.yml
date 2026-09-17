@@ -2,10 +2,9 @@ name: Purge Expired Campus Menus Cron
 
 on:
   schedule:
-    # 5:05 PM IST (11:35 AM UTC) - After Lunch window passes
-    - cron: '35 11 * * *'
-    # 12:05 AM IST (6:35 PM UTC) - After Dinner window passes
-    - cron: '35 18 * * *'
+    # Runs every 6 hours: 00:00, 06:00, 12:00, 18:00 UTC
+    # In IST (UTC+5:30): 05:30 AM, 11:30 AM (Pre-Lunch), 05:30 PM (Pre-Dinner), 11:30 PM (Night Reset)
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:

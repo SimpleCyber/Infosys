@@ -1,18 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MealWindow } from "@/types/menu";
 import { verifyAdminPassword, uploadMenuPhoto } from "@/lib/api";
 
 const PRESET_FOOD_COURTS = [
-  { id: "amoeba", name: "Amoeba (Central FC)" },
-  { id: "maitri", name: "Maitri (Main Dining)" },
-  { id: "oasis", name: "Oasis (South Zone)" },
-  { id: "enroute", name: "Enroute (Express FC)" },
-  { id: "eli", name: "ELI (Executive Lounge)" },
-  { id: "magna", name: "Magna (North Zone)" },
+  { id: "magna", name: "Meghna (North Zone)" },
   { id: "arena", name: "Arena (Sports Complex)" },
-  { id: "fc8", name: "Food Court 8 (Guest FC)" },
+  { id: "oasis", name: "Oasis (South Zone)" },
+  { id: "maitri", name: "Maitri (Main Dining)" },
+  { id: "enroute", name: "Enroute (Express FC)" },
+  { id: "eli", name: "ILI (Executive Lounge)" },
+  { id: "amoeba", name: "Ameba (Central FC)" },
+  { id: "fc8", name: "FC 8 (Guest FC)" },
 ];
 
 const SUGGESTED_OUTLETS = [
@@ -41,6 +41,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+
+  useEffect(() => {
+    if (isOpen) {
+      const now = new Date();
+      const istHours = new Date(now.getTime() + 5.5 * 3600000).getUTCHours();
+      setMealWindow(istHours >= 12 && istHours < 17 ? "lunch" : "dinner");
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -184,6 +192,17 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
+              {/* 6-Hour Menu Lifecycle Notice Banner */}
+              <div className="p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50/60 border border-amber-200/80 flex items-start space-x-2 shadow-2xs">
+                <span className="text-sm flex-shrink-0 mt-0.5">⏱️</span>
+                <div className="space-y-0.5">
+                  <p className="text-[11px] font-black text-amber-950">6-Hour Menu Rotation Cycle</p>
+                  <p className="text-[10px] text-amber-900/80 leading-relaxed font-medium">
+                    Uploaded menu photos are active for this 6-hour window and automatically reset every 6 hours by the campus cron job.
+                  </p>
+                </div>
+              </div>
+
               {/* Food Court Select */}
               <div className="space-y-1">
                 <label className="font-bold text-slate-700">1. Food Court</label>

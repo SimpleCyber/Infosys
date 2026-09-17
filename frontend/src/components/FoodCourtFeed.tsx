@@ -24,27 +24,19 @@ export interface CampusFoodCourtMeta {
 export const ALL_8_CAMPUS_FOOD_COURTS: CampusFoodCourtMeta[] = [
   {
     id: "magna",
-    name: "Magna",
-    shortName: "Magna",
+    name: "Meghna",
+    shortName: "Meghna",
     icon: <PixelBurgerIcon className="w-9 h-9 sm:w-10 sm:h-10" />,
     bg: "bg-[#FEEDD7]",
     border: "border-amber-200/60",
   },
   {
-    id: "amoeba",
-    name: "Amoeba",
-    shortName: "Amoeba",
+    id: "arena",
+    name: "Arena",
+    shortName: "Arena",
     icon: <PixelPizzaIcon className="w-9 h-9 sm:w-10 sm:h-10" />,
-    bg: "bg-[#EBF0F7]",
-    border: "border-slate-200/70",
-  },
-  {
-    id: "maitri",
-    name: "Maitri",
-    shortName: "Maitri",
-    icon: <PixelCoffeeIcon className="w-9 h-9 sm:w-10 sm:h-10" />,
-    bg: "bg-[#E2EDE9]",
-    border: "border-emerald-200/60",
+    bg: "bg-[#E6F4EA]",
+    border: "border-teal-200/60",
   },
   {
     id: "oasis",
@@ -53,6 +45,14 @@ export const ALL_8_CAMPUS_FOOD_COURTS: CampusFoodCourtMeta[] = [
     icon: <PixelBakeryIcon className="w-9 h-9 sm:w-10 sm:h-10" />,
     bg: "bg-[#FEE7DF]",
     border: "border-rose-200/60",
+  },
+  {
+    id: "maitri",
+    name: "Maitri",
+    shortName: "Maitri",
+    icon: <PixelCoffeeIcon className="w-9 h-9 sm:w-10 sm:h-10" />,
+    bg: "bg-[#E2EDE9]",
+    border: "border-emerald-200/60",
   },
   {
     id: "enroute",
@@ -64,19 +64,19 @@ export const ALL_8_CAMPUS_FOOD_COURTS: CampusFoodCourtMeta[] = [
   },
   {
     id: "eli",
-    name: "ELI",
-    shortName: "ELI",
+    name: "ILI",
+    shortName: "ILI",
     icon: <PixelBurgerIcon className="w-9 h-9 sm:w-10 sm:h-10" />,
     bg: "bg-[#FEE8D6]",
     border: "border-orange-200/60",
   },
   {
-    id: "arena",
-    name: "Arena",
-    shortName: "Arena",
+    id: "amoeba",
+    name: "Ameba",
+    shortName: "Ameba",
     icon: <PixelPizzaIcon className="w-9 h-9 sm:w-10 sm:h-10" />,
-    bg: "bg-[#E6F4EA]",
-    border: "border-teal-200/60",
+    bg: "bg-[#EBF0F7]",
+    border: "border-slate-200/70",
   },
   {
     id: "fc8",
@@ -107,6 +107,9 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
   onSelectOutlet,
   isLoading,
 }) => {
+  // Track images that fail to load because they were purged in the 6-hour cycle
+  const [brokenImageIds, setBrokenImageIds] = React.useState<Record<string, boolean>>({});
+
   // Find currently selected court metadata
   const currentCourtMeta = ALL_8_CAMPUS_FOOD_COURTS.find(
     (c) => c.id === selectedCourtId
@@ -139,8 +142,8 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
     );
   };
 
-  // Dynamic Section Title: e.g. "Magna" instead of "Magna Menus", or "All Food Courts"
-  let sectionTitle = "Magna";
+  // Dynamic Section Title: e.g. "Meghna" instead of "Meghna Menus", or "All Food Courts"
+  let sectionTitle = "Meghna";
   if (isSearching) {
     sectionTitle = `Results for "${searchQuery}"`;
   } else if (selectedCourtId === null) {
@@ -177,7 +180,7 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
             onClick={() => onSelectCourt(selectedCourtId === null ? "magna" : null)}
             className="text-[13px] font-bold text-[#1E5B7B] hover:opacity-80 transition-opacity"
           >
-            {selectedCourtId === null ? "Show Magna" : "Show all"}
+            {selectedCourtId === null ? "Show Meghna" : "Show all"}
           </button>
         </div>
 
@@ -258,6 +261,35 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
         {/* CONDITION A: If "Show all" is active, display food courts grouped row by row! */}
         {selectedCourtId === null && !isSearching ? (
           <div className="space-y-6">
+            {allOutlets.length === 0 && (
+              <div className="mx-5 p-7 rounded-3xl bg-white border border-slate-200/80 text-center space-y-3.5 shadow-xs">
+                <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-800 text-2xl flex items-center justify-center mx-auto shadow-2xs">
+                  ⏱️
+                </div>
+                <div className="space-y-1.5">
+                  <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-extrabold border border-emerald-200/60">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>6-Hour Menu Rotation Active</span>
+                  </div>
+                  <h3 className="text-base font-black text-neutral-900 tracking-tight">
+                    Waiting for Manager Uploads
+                  </h3>
+                  <p className="text-xs text-neutral-500 max-w-xs mx-auto font-medium leading-relaxed">
+                    Campus menus reset every 6 hours. Past menus have been cleared, and newly uploaded menus will appear here live as managers post them.
+                  </p>
+                </div>
+                <div className="pt-1">
+                  <Link
+                    href="/admin"
+                    className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-neutral-900 text-white text-xs font-bold shadow-xs hover:bg-neutral-800 transition-colors"
+                  >
+                    <span>📸</span>
+                    <span>Food Court Manager Portal</span>
+                  </Link>
+                </div>
+              </div>
+            )}
+
             {ALL_8_CAMPUS_FOOD_COURTS.map((court) => {
               const courtOutlets = allOutlets.filter(
                 (o) => o.foodCourtId === court.id
@@ -287,7 +319,7 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
                   {/* Outlets row or placeholder */}
                   {courtOutlets.length === 0 ? (
                     <div className="mx-5 p-4 rounded-2xl bg-white border border-slate-200/70 text-center text-xs text-neutral-400 font-medium">
-                      No images uploaded for {court.name} yet.
+                      No active menus for {court.name} in this 6-hour cycle.
                     </div>
                   ) : (
                     <div
@@ -301,15 +333,27 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
                           className="snap-start flex-shrink-0 w-[275px] sm:w-[295px] bg-white rounded-[24px] overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-neutral-100 hover:shadow-md transition-all duration-150 cursor-pointer group flex flex-col"
                         >
                           <div className="relative h-44 w-full bg-slate-900 overflow-hidden rounded-t-[24px]">
-                            <img
-                              src={outlet.imageUrl}
-                              alt={outlet.outletName}
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                            <div className="absolute top-3 left-3">
+                            {brokenImageIds[outlet.id] ? (
+                              <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center p-4 text-center space-y-1.5 select-none">
+                                <span className="text-2xl">⏱️</span>
+                                <span className="text-[11px] font-black text-white/95">Image Expired</span>
+                                <span className="text-[10px] text-slate-400 font-medium">Cleared by 6h cycle</span>
+                              </div>
+                            ) : (
+                              <img
+                                src={outlet.imageUrl}
+                                alt={outlet.outletName}
+                                onError={() => setBrokenImageIds((prev) => ({ ...prev, [outlet.id]: true }))}
+                                className="w-full h-full object-cover"
+                              />
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
+                            <div className="absolute top-3 left-3 flex items-center space-x-1.5">
                               <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-white/95 text-neutral-900 shadow-xs backdrop-blur-sm">
                                 {outlet.isFixedMenu ? "📌 Fixed Menu" : "🔥 Daily Special"}
+                              </span>
+                              <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-black/60 text-white/90 backdrop-blur-sm">
+                                6h
                               </span>
                             </div>
                             <div className="absolute bottom-2.5 left-0 right-0 flex items-center justify-center space-x-1.5">
@@ -351,25 +395,31 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
 
               if (displayedOutlets.length === 0) {
                 return (
-                  <div className="mx-5 p-8 rounded-3xl bg-white border border-slate-200/80 text-center space-y-3 shadow-xs">
-                    <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-700 text-3xl flex items-center justify-center mx-auto">
-                      🍽️
+                  <div className="mx-5 p-8 rounded-3xl bg-white border border-slate-200/80 text-center space-y-3.5 shadow-xs">
+                    <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-800 text-2xl flex items-center justify-center mx-auto shadow-2xs">
+                      ⏱️
                     </div>
-                    <div className="space-y-1">
-                      <h3 className="text-base font-extrabold text-neutral-900">
-                        No images uploaded yet.
+                    <div className="space-y-1.5">
+                      <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-extrabold border border-emerald-200/60">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>6-Hour Menu Rotation</span>
+                      </div>
+                      <h3 className="text-base font-black text-neutral-900 tracking-tight">
+                        No Menus Uploaded Yet
                       </h3>
-                      <p className="text-xs text-neutral-500 max-w-xs mx-auto font-medium">
-                        Food court managers haven't uploaded menus for {currentWindow === "lunch" ? "Lunch" : "Dinner"} yet.
+                      <p className="text-xs text-neutral-500 max-w-xs mx-auto font-medium leading-relaxed">
+                        Campus menus reset every 6 hours. Waiting for {currentCourtMeta ? currentCourtMeta.name : "food court"} managers to upload new photos for {currentWindow === "lunch" ? "Lunch" : "Dinner"}.
                       </p>
                     </div>
-                    <Link
-                      href="/admin"
-                      className="inline-flex items-center space-x-1.5 px-4 py-2.5 rounded-xl bg-neutral-900 text-white text-xs font-bold shadow-xs hover:bg-neutral-800 transition-colors"
-                    >
-                      <span>📸</span>
-                      <span>Manager Upload</span>
-                    </Link>
+                    <div className="pt-1">
+                      <Link
+                        href="/admin"
+                        className="inline-flex items-center space-x-1.5 px-4 py-2.5 rounded-xl bg-neutral-900 text-white text-xs font-bold shadow-xs hover:bg-neutral-800 transition-colors"
+                      >
+                        <span>📸</span>
+                        <span>Upload as Manager</span>
+                      </Link>
+                    </div>
                   </div>
                 );
               }
@@ -386,15 +436,27 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
                       className="snap-start flex-shrink-0 w-[275px] sm:w-[295px] bg-white rounded-[24px] overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-neutral-100 hover:shadow-md transition-all duration-150 cursor-pointer group flex flex-col"
                     >
                       <div className="relative h-44 w-full bg-slate-900 overflow-hidden rounded-t-[24px]">
-                        <img
-                          src={outlet.imageUrl}
-                          alt={outlet.outletName}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                        <div className="absolute top-3 left-3">
+                        {brokenImageIds[outlet.id] ? (
+                          <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center p-4 text-center space-y-1.5 select-none">
+                            <span className="text-2xl">⏱️</span>
+                            <span className="text-[11px] font-black text-white/95">Image Expired</span>
+                            <span className="text-[10px] text-slate-400 font-medium">Cleared by 6h cycle</span>
+                          </div>
+                        ) : (
+                          <img
+                            src={outlet.imageUrl}
+                            alt={outlet.outletName}
+                            onError={() => setBrokenImageIds((prev) => ({ ...prev, [outlet.id]: true }))}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
+                        <div className="absolute top-3 left-3 flex items-center space-x-1.5">
                           <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-white/95 text-neutral-900 shadow-xs backdrop-blur-sm">
                             {outlet.isFixedMenu ? "📌 Fixed Menu" : "🔥 Daily Special"}
+                          </span>
+                          <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-black/60 text-white/90 backdrop-blur-sm">
+                            6h
                           </span>
                         </div>
                         <div className="absolute bottom-2.5 left-0 right-0 flex items-center justify-center space-x-1.5">
