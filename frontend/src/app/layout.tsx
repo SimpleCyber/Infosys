@@ -13,8 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Infosys Food Courts",
-  description: "Build By @SimpleCyber",
+  title: "Infosys Mysore Food Courts",
+  description: "Infosys Mysore Campus Food Courts & Daily Menus",
+  icons: {
+    icon: "/image.png",
+    shortcut: "/image.png",
+    apple: "/image.png",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

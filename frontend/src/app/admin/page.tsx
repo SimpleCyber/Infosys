@@ -11,11 +11,6 @@ const SUGGESTED_OUTLETS = [
   "Shivam Caterers",
   "Purple Grapes",
   "Annapurna Meals",
-  "Shawarma Point",
-  "Coffee Day Express",
-  "Juice & Shakes",
-  "South Indian Special",
-  "Tandoori Junction",
 ];
 
 export default function AdminPage() {
@@ -128,33 +123,47 @@ export default function AdminPage() {
   return (
     <div className="bg-[#D4E2DC] min-h-screen text-slate-900 flex flex-col items-center justify-center sm:p-4 selection:bg-emerald-600 selection:text-white antialiased font-sans">
       <main className="w-full max-w-[392px] min-h-screen sm:min-h-[820px] bg-white sm:rounded-[40px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.22)] sm:border sm:border-slate-300/60 flex flex-col relative overflow-hidden">
-        {/* Warm Header Bar matching Home Page */}
-        <div className="bg-gradient-to-b from-[#FDF1DF] via-[#FDF3E3] to-[#FAF8F5] px-5 py-4 border-b border-amber-100/60 flex items-center justify-between shadow-xs">
-          <Link
-            href="/"
-            className="flex items-center space-x-1.5 text-xs font-bold text-neutral-700 hover:text-neutral-900 bg-white px-3 py-1.5 rounded-full border border-amber-200/60 shadow-[0_1px_4px_rgba(0,0,0,0.04)] transition-all active:scale-95"
-          >
-            <span>←</span>
-            <span>Food Courts</span>
-          </Link>
+        {/* Warm, Spacious Header Bar matching App Palette */}
+        <div className="bg-gradient-to-b from-[#FDF1DF] via-[#FDF3E3] to-[#FAF8F5] pt-5 pb-4 px-5 border-b border-amber-100/60 space-y-3 shadow-xs select-none">
+          {/* Top Row: Back Navigation Button & Logout Button (if authenticated) */}
+          <div className="flex items-center justify-between">
+            <Link
+              href="/"
+              className="inline-flex items-center space-x-1.5 text-xs font-bold text-neutral-700 hover:text-neutral-900 bg-white/90 backdrop-blur-xs px-3.5 py-1.5 rounded-full border border-amber-200/60 shadow-[0_1px_4px_rgba(0,0,0,0.04)] transition-all active:scale-95"
+            >
+              <span>←</span>
+              <span>Back to Food Courts</span>
+            </Link>
 
-          <div className="text-center">
-            <h1 className="text-xs font-black text-neutral-900 tracking-tight uppercase">
-              Manager Portal
-            </h1>
-            <p className="text-[10px] text-neutral-500 font-medium">Infosys Mysore</p>
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="text-[11px] font-extrabold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100/80 px-3 py-1.5 rounded-full border border-rose-200/70 transition-all active:scale-95 shadow-2xs"
+              >
+                Logout
+              </button>
+            ) : (
+              <span className="text-[11px] font-bold text-neutral-400 bg-white/60 px-2.5 py-1 rounded-full border border-amber-200/40">
+                Staff Only
+              </span>
+            )}
           </div>
 
-          {isAuthenticated ? (
-            <button
-              onClick={handleLogout}
-              className="text-[11px] font-bold text-rose-600 hover:text-rose-800 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200/60 transition-all active:scale-95"
-            >
-              Logout
-            </button>
-          ) : (
-            <div className="w-12"></div>
-          )}
+          {/* Title Row: Clean, Prominent & Uncluttered */}
+          <div className="space-y-0.5">
+            <div className="flex items-center space-x-2">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#1E4D3E] bg-emerald-50 border border-emerald-200/70 px-2 py-0.5 rounded-md">
+                Manager Portal
+              </span>
+              <span className="text-[11px] font-semibold text-neutral-500">
+                Infosys Mysore Campus
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-[22px] font-black text-neutral-900 tracking-tight leading-tight">
+              Daily Menu Upload
+            </h1>
+          </div>
         </div>
 
         {/* Auth Screen if not logged in */}

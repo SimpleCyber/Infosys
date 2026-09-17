@@ -1,116 +1,23 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { FeedResponse, MealWindow } from "@/types/menu";
 import { fetchMenuFeed } from "@/lib/api";
 import { Navbar } from "@/components/Navbar";
 import { FoodCourtFeed } from "@/components/FoodCourtFeed";
-import { FloatingNav } from "@/components/FloatingNav";
 import { RestaurantBookingModal, CampusOutletCard } from "@/components/RestaurantBookingModal";
 import { CampusServicesDrawer } from "@/components/CampusServicesDrawer";
 import { RecreationalModal } from "@/components/RecreationalModal";
 import { MultiplexModal } from "@/components/MultiplexModal";
 
-const MOCK_INITIAL_DATA: FeedResponse = {
-  source: "cache",
+const EMPTY_FEED_DATA: FeedResponse = {
+  source: "database",
   data: {
     dateStr: new Date().toISOString().split("T")[0],
     mealWindow: "lunch",
     timestamp: new Date().toISOString(),
-    foodCourts: [
-      {
-        foodCourtId: "magna",
-        foodCourtName: "Magna",
-        description: "North Zone Food Court",
-        hasActiveMenus: true,
-        outlets: [
-          {
-            id: "magna_shivam_lunch",
-            foodCourtId: "magna",
-            foodCourtName: "Magna",
-            outletName: "Shivam Caterers",
-            mealWindow: "lunch",
-            imageUrl: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop&q=80",
-            isFixedMenu: false,
-            dateStr: new Date().toISOString().split("T")[0],
-            updatedAt: new Date().toISOString(),
-            updatedAtFormatted: "Today at 12:10 PM",
-          },
-          {
-            id: "magna_grapes_lunch",
-            foodCourtId: "magna",
-            foodCourtName: "Magna",
-            outletName: "Purple Grapes",
-            mealWindow: "lunch",
-            imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80",
-            isFixedMenu: false,
-            dateStr: new Date().toISOString().split("T")[0],
-            updatedAt: new Date().toISOString(),
-            updatedAtFormatted: "Today at 12:25 PM",
-          },
-        ],
-      },
-      {
-        foodCourtId: "amoeba",
-        foodCourtName: "Amoeba",
-        description: "Central Food Court",
-        hasActiveMenus: true,
-        outlets: [
-          {
-            id: "amoeba_shawarma_lunch",
-            foodCourtId: "amoeba",
-            foodCourtName: "Amoeba",
-            outletName: "Shawarma Point",
-            mealWindow: "lunch",
-            imageUrl: "https://images.unsplash.com/photo-1561651823-34feb02250e4?w=600&auto=format&fit=crop&q=80",
-            isFixedMenu: false,
-            dateStr: new Date().toISOString().split("T")[0],
-            updatedAt: new Date().toISOString(),
-            updatedAtFormatted: "Today at 12:15 PM",
-          },
-        ],
-      },
-      {
-        foodCourtId: "maitri",
-        foodCourtName: "Maitri",
-        description: "Main Dining Hall",
-        hasActiveMenus: true,
-        outlets: [
-          {
-            id: "maitri_annapurna_lunch",
-            foodCourtId: "maitri",
-            foodCourtName: "Maitri",
-            outletName: "Annapurna Meals",
-            mealWindow: "lunch",
-            imageUrl: "https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=600&auto=format&fit=crop&q=80",
-            isFixedMenu: false,
-            dateStr: new Date().toISOString().split("T")[0],
-            updatedAt: new Date().toISOString(),
-            updatedAtFormatted: "Today at 12:20 PM",
-          },
-        ],
-      },
-      {
-        foodCourtId: "oasis",
-        foodCourtName: "Oasis",
-        description: "South Zone Court",
-        hasActiveMenus: true,
-        outlets: [
-          {
-            id: "oasis_coffeeday_fixed",
-            foodCourtId: "oasis",
-            foodCourtName: "Oasis",
-            outletName: "Coffee Day Express",
-            mealWindow: "lunch",
-            imageUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&auto=format&fit=crop&q=80",
-            isFixedMenu: true,
-            dateStr: new Date().toISOString().split("T")[0],
-            updatedAt: new Date().toISOString(),
-            updatedAtFormatted: "Fixed Menu",
-          },
-        ],
-      },
-    ],
+    foodCourts: [],
   },
 };
 
@@ -118,7 +25,7 @@ export default function Home() {
   const [mealWindow, setMealWindow] = useState<MealWindow>("lunch");
   const [selectedCourtId, setSelectedCourtId] = useState<string | null>("magna"); // Default to first food court
   const [searchQuery, setSearchQuery] = useState("");
-  const [feedData, setFeedData] = useState<FeedResponse>(MOCK_INITIAL_DATA);
+  const [feedData, setFeedData] = useState<FeedResponse>(EMPTY_FEED_DATA);
   const [isLoading, setIsLoading] = useState(false);
 
   // Modals & Drawers State
@@ -131,11 +38,30 @@ export default function Home() {
     setIsLoading(true);
     try {
       const data = await fetchMenuFeed(window);
-      if (data && data.data && data.data.foodCourts && data.data.foodCourts.length > 0) {
+      if (data && data.data && Array.isArray(data.data.foodCourts)) {
         setFeedData(data);
+      } else {
+        setFeedData({
+          source: "database",
+          data: {
+            dateStr: new Date().toISOString().split("T")[0],
+            mealWindow: window,
+            timestamp: new Date().toISOString(),
+            foodCourts: [],
+          },
+        });
       }
     } catch (err) {
-      console.warn("Using fallback campus menu data", err);
+      console.warn("Using live campus menu data", err);
+      setFeedData({
+        source: "database",
+        data: {
+          dateStr: new Date().toISOString().split("T")[0],
+          mealWindow: window,
+          timestamp: new Date().toISOString(),
+          foodCourts: [],
+        },
+      });
     } finally {
       setIsLoading(false);
     }
@@ -177,8 +103,19 @@ export default function Home() {
           />
         </div>
 
-        {/* Docked 3-option Bottom Bar (Food Courts, Explore/Search, Manager) */}
-        <FloatingNav onOpenSearch={() => setIsServicesDrawerOpen(true)} />
+        {/* Default Manager Portal Bottom Action Bar */}
+        <div className="bg-white/95 backdrop-blur-md border-t border-slate-100/90 pt-3 pb-4 px-5 shadow-[0_-4px_25px_rgba(0,0,0,0.04)] select-none">
+          <Link
+            href="/admin"
+            className="w-full py-3.5 px-4 rounded-2xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-black transition-all shadow-md flex items-center justify-center space-x-2 active:scale-98"
+          >
+            <span>📸</span>
+            <span>Food Court Manager Portal</span>
+            <span className="text-neutral-400 text-xs">→</span>
+          </Link>
+          {/* iPhone Home Indicator Pill */}
+          <div className="w-28 h-1 bg-black/80 rounded-full mx-auto mt-2.5"></div>
+        </div>
 
         {/* Clean Outlet Detail Modal */}
         <RestaurantBookingModal

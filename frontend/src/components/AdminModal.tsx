@@ -19,11 +19,6 @@ const SUGGESTED_OUTLETS = [
   "Shivam Caterers",
   "Purple Grapes",
   "Annapurna",
-  "Shawarma Point",
-  "Juice & Shakes",
-  "Coffee Day Express",
-  "South Indian Special",
-  "Tandoori Junction",
 ];
 
 interface AdminModalProps {

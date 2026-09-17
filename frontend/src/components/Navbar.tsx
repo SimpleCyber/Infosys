@@ -34,13 +34,15 @@ export const Navbar: React.FC<NavbarProps> = ({
         </span>
       </div>
 
-      {/* Main Hero Headline & Shortened Punchy Subtitle */}
+      {/* Main Hero Headline & Subtitle */}
       <div className="space-y-1 pt-0.5">
-        <h1 className="text-[32px] sm:text-[34px] font-black text-[#15191E] tracking-tight leading-[1.12]">
-          {currentWindow === "lunch" ? "Ready for lunch?" : "Ready for dinner?"}
+        <h1 className="text-[28px] sm:text-[30px] font-black text-[#15191E] tracking-tight leading-[1.12]">
+          Infosys Mysore Food Court
         </h1>
         <p className="text-xs sm:text-[13px] text-[#69655F] font-medium tracking-normal">
-          Today's campus food court menus
+          {currentWindow === "lunch"
+            ? "Today's campus food court menus"
+            : "Tonight's campus food court menus"}
         </p>
       </div>
 

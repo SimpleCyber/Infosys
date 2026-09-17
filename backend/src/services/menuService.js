@@ -155,6 +155,24 @@ export const saveOutletMenu = async (menuData) => {
   return record;
 };
 
+export const deleteOutletMenu = async (id) => {
+  memoryMenuStore.delete(id);
+  const todayStr = getTodayDateString();
+
+  try {
+    await remove(ref(rtdb, `menus/${id}`));
+  } catch (err) {
+    console.warn('[Firebase Delete Warning]', err.message);
+  }
+
+  try {
+    await upstashRedis.del(`menus:feed:${todayStr}:lunch`);
+    await upstashRedis.del(`menus:feed:${todayStr}:dinner`);
+  } catch (err) {
+    console.error('[Redis Purge Error]', err.message);
+  }
+};
+
 export const purgeExpiredMenus = async () => {
   const todayStr = getTodayDateString();
   let purgedCount = 0;

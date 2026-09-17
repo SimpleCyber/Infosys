@@ -165,7 +165,7 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
   }
 
   return (
-    <div className="space-y-6 pb-24 pt-3">
+    <div className="space-y-6 pb-6 pt-3">
       {/* 1. CATEGORIES SECTION: 8 Infosys Food Courts */}
       <section className="space-y-2 px-5">
         {/* Header */}
@@ -183,7 +183,7 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
 
         {/* Scrollable Row of 8 Food Courts with Safe Padding & Steady/Constant Hover */}
         <div className="relative -mx-5 px-5">
-          <div className="flex space-x-3.5 overflow-x-auto pt-3 pb-3 px-1 scrollbar-none snap-x snap-mandatory">
+          <div className="flex space-x-3.5 overflow-x-auto pt-3 pb-3 px-1 scroll-px-1 scrollbar-none snap-x snap-mandatory">
             {ALL_8_CAMPUS_FOOD_COURTS.map((court) => {
               const isSelected = selectedCourtId === court.id;
               return (
@@ -290,7 +290,10 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
                       No images uploaded for {court.name} yet.
                     </div>
                   ) : (
-                    <div className="flex space-x-3.5 overflow-x-auto pl-5 pr-5 pb-2 scrollbar-none snap-x snap-mandatory">
+                    <div
+                      className="flex space-x-3.5 overflow-x-auto px-5 scroll-px-5 pb-3 scrollbar-none snap-x snap-mandatory"
+                      style={{ scrollPaddingLeft: "20px", scrollPaddingRight: "20px" }}
+                    >
                       {courtOutlets.map((outlet) => (
                         <div
                           key={outlet.id}
@@ -331,6 +334,7 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
                           </div>
                         </div>
                       ))}
+                      <div className="w-1.5 flex-shrink-0" aria-hidden="true" />
                     </div>
                   )}
                 </div>
@@ -371,7 +375,10 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
               }
 
               return (
-                <div className="flex space-x-3.5 overflow-x-auto pl-5 pr-5 pb-3 scrollbar-none snap-x snap-mandatory">
+                <div
+                  className="flex space-x-3.5 overflow-x-auto px-5 scroll-px-5 pb-3 scrollbar-none snap-x snap-mandatory"
+                  style={{ scrollPaddingLeft: "20px", scrollPaddingRight: "20px" }}
+                >
                   {displayedOutlets.map((outlet) => (
                     <div
                       key={outlet.id}
@@ -412,23 +419,13 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
                       </div>
                     </div>
                   ))}
+                  <div className="w-1.5 flex-shrink-0" aria-hidden="true" />
                 </div>
               );
             })()}
           </div>
         )}
       </section>
-
-      {/* Direct Link to Manager Upload Portal */}
-      <div className="px-5 pt-2">
-        <Link
-          href="/admin"
-          className="w-full py-3.5 rounded-2xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-extrabold transition-all shadow-sm flex items-center justify-center space-x-2 active:scale-98"
-        >
-          <span>📸</span>
-          <span>Food Court Manager Portal</span>
-        </Link>
-      </div>
     </div>
   );
 };

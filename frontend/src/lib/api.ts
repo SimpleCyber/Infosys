@@ -1,6 +1,6 @@
 import { FeedResponse, MealWindow } from '@/types/menu';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://infosys-t54l.vercel.app/api';
 
 export async function fetchMenuFeed(window?: MealWindow): Promise<FeedResponse> {
   const url = `${API_BASE}/menus/feed${window ? `?window=${window}` : ''}`;
