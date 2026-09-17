@@ -400,16 +400,11 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
                       ⏱️
                     </div>
                     <div className="space-y-1.5">
-                      <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-extrabold border border-emerald-200/60">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span>6-Hour Menu Rotation</span>
-                      </div>
+                    
                       <h3 className="text-base font-black text-neutral-900 tracking-tight">
                         No Menus Uploaded Yet
                       </h3>
-                      <p className="text-xs text-neutral-500 max-w-xs mx-auto font-medium leading-relaxed">
-                        Campus menus reset every 6 hours. Waiting for {currentCourtMeta ? currentCourtMeta.name : "food court"} managers to upload new photos for {currentWindow === "lunch" ? "Lunch" : "Dinner"}.
-                      </p>
+                     
                     </div>
                     <div className="pt-1">
                       <Link

@@ -10,6 +10,7 @@ import { RestaurantBookingModal, CampusOutletCard } from "@/components/Restauran
 import { CampusServicesDrawer } from "@/components/CampusServicesDrawer";
 import { RecreationalModal } from "@/components/RecreationalModal";
 import { MultiplexModal } from "@/components/MultiplexModal";
+import { CampusSocialModal } from "@/components/CampusSocialModal";
 
 const EMPTY_FEED_DATA: FeedResponse = {
   source: "database",
@@ -34,6 +35,7 @@ export default function Home() {
   const [isServicesDrawerOpen, setIsServicesDrawerOpen] = useState(false);
   const [isRecreationalOpen, setIsRecreationalOpen] = useState(false);
   const [isMultiplexOpen, setIsMultiplexOpen] = useState(false);
+  const [isCampusSocialOpen, setIsCampusSocialOpen] = useState(false);
 
   const loadFeed = async (window: MealWindow) => {
     setIsLoading(true);
@@ -97,6 +99,7 @@ export default function Home() {
           currentWindow={mealWindow}
           onWindowChange={handleWindowChange}
           visitorCount={visitorCount}
+          onOpenCampusModal={() => setIsCampusSocialOpen(true)}
         />
 
         {/* Scrollable Feed Area (Categories & Dynamic Menus Section) */}
@@ -161,6 +164,12 @@ export default function Home() {
         <MultiplexModal
           isOpen={isMultiplexOpen}
           onClose={() => setIsMultiplexOpen(false)}
+        />
+
+        {/* Infosys Mysore Campus & Creator Showcase Modal */}
+        <CampusSocialModal
+          isOpen={isCampusSocialOpen}
+          onClose={() => setIsCampusSocialOpen(false)}
         />
       </main>
     </div>
