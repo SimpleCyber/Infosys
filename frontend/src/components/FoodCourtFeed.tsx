@@ -22,14 +22,16 @@ export interface CampusFoodCourtMeta {
 }
 
 export const ALL_8_CAMPUS_FOOD_COURTS: CampusFoodCourtMeta[] = [
-  {
-    id: "magna",
-    name: "Magna",
-    shortName: "Magna",
-    icon: <PixelBurgerIcon className="w-9 h-9 sm:w-10 sm:h-10" />,
-    bg: "bg-[#FEEDD7]",
+    {
+    id: "fc8",
+    name: "Feasta",
+    shortName: "Feasta",
+    icon: <PixelCoffeeIcon className="w-9 h-9 sm:w-10 sm:h-10" />,
+        bg: "bg-[#FEEDD7]",
     border: "border-amber-200/60",
+ 
   },
+
   {
     id: "arena",
     name: "Arena",
@@ -45,6 +47,14 @@ export const ALL_8_CAMPUS_FOOD_COURTS: CampusFoodCourtMeta[] = [
     icon: <PixelBakeryIcon className="w-9 h-9 sm:w-10 sm:h-10" />,
     bg: "bg-[#FEE7DF]",
     border: "border-rose-200/60",
+  },
+    {
+    id: "magna",
+    name: "Magna",
+    shortName: "Magna",
+    icon: <PixelBurgerIcon className="w-9 h-9 sm:w-10 sm:h-10" />,
+   bg: "bg-[#EDE7F6]",
+    border: "border-indigo-200/60",
   },
   {
     id: "maitri",
@@ -77,14 +87,6 @@ export const ALL_8_CAMPUS_FOOD_COURTS: CampusFoodCourtMeta[] = [
     icon: <PixelPizzaIcon className="w-9 h-9 sm:w-10 sm:h-10" />,
     bg: "bg-[#EBF0F7]",
     border: "border-slate-200/70",
-  },
-  {
-    id: "fc8",
-    name: "FC 8",
-    shortName: "FC 8",
-    icon: <PixelCoffeeIcon className="w-9 h-9 sm:w-10 sm:h-10" />,
-    bg: "bg-[#EDE7F6]",
-    border: "border-indigo-200/60",
   },
 ];
 
@@ -124,9 +126,8 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
       foodCourtName: o.foodCourtName,
       mealWindow: o.mealWindow,
       imageUrl: o.imageUrl,
-      isFixedMenu: o.isFixedMenu,
       updatedAtFormatted: o.updatedAtFormatted || o.updatedAt,
-      description: `${o.foodCourtName} • ${o.isFixedMenu ? "Fixed daily menu" : "Daily changing special"}`,
+      description: `${o.foodCourtName} • Menu Board`,
     }))
   );
 
@@ -267,16 +268,9 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
                   ⏱️
                 </div>
                 <div className="space-y-1.5">
-                  <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-extrabold border border-emerald-200/60">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>Daily Midnight Reset Active</span>
-                  </div>
                   <h3 className="text-base font-black text-neutral-900 tracking-tight">
                     Waiting for Manager Uploads
                   </h3>
-                  <p className="text-xs text-neutral-500 max-w-xs mx-auto font-medium leading-relaxed">
-                    Campus menus reset every night at 12:00 midnight. Past menus have been archived, and newly uploaded menus appear here live as managers post them.
-                  </p>
                 </div>
                 <div className="pt-1">
                   <Link
@@ -355,14 +349,11 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
                                   <span>Yesterday&apos;s Menu</span>
                                 </span>
                               ) : (
-                                <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-white/95 text-neutral-900 shadow-xs backdrop-blur-sm">
-                                  {outlet.isFixedMenu ? "📌 Fixed Menu" : "🔥 Daily Special"}
+                                <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-black/60 text-white/95 backdrop-blur-sm flex items-center space-x-1.5 border border-white/10 shadow-xs">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                  <span>{outlet.updatedAtFormatted || "Today"}</span>
                                 </span>
                               )}
-                              <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-black/60 text-white/90 backdrop-blur-sm flex items-center space-x-1">
-                                {!outlet.isSoftExpired && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
-                                <span>{outlet.isSoftExpired ? "May be outdated" : (outlet.updatedAtFormatted || "Today")}</span>
-                              </span>
                             </div>
                             <div className="absolute bottom-2.5 left-0 right-0 flex items-center justify-center space-x-1.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-white shadow-xs"></span>
@@ -461,14 +452,11 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
                               <span>Yesterday&apos;s Menu</span>
                             </span>
                           ) : (
-                            <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-white/95 text-neutral-900 shadow-xs backdrop-blur-sm">
-                              {outlet.isFixedMenu ? "📌 Fixed Menu" : "🔥 Daily Special"}
+                            <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-black/60 text-white/95 backdrop-blur-sm flex items-center space-x-1.5 border border-white/10 shadow-xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                              <span>{outlet.updatedAtFormatted || "Today"}</span>
                             </span>
                           )}
-                          <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-black/60 text-white/90 backdrop-blur-sm flex items-center space-x-1">
-                            {!outlet.isSoftExpired && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
-                            <span>{outlet.isSoftExpired ? "May be outdated" : (outlet.updatedAtFormatted || "Today")}</span>
-                          </span>
                         </div>
                         <div className="absolute bottom-2.5 left-0 right-0 flex items-center justify-center space-x-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-white shadow-xs"></span>

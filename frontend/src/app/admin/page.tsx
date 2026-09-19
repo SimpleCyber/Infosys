@@ -366,7 +366,7 @@ export default function AdminPage() {
             </div>
 
             {/* 4. Menu Type Toggle */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <label className="text-xs font-black text-neutral-800 tracking-tight uppercase">
                 4. Menu Type:
               </label>
@@ -396,13 +396,13 @@ export default function AdminPage() {
                   <div className="text-[10px] text-neutral-400 font-normal">Standard outlet card</div>
                 </button>
               </div>
-            </div>
+            </div> */}
 
             {/* 5. Menu Photo Upload */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-black text-neutral-800 tracking-tight uppercase">
-                  5. Upload Menu Photos:
+                  4. Upload Menu Photos:
                 </label>
                 {imagePreviews.length > 0 && (
                   <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">

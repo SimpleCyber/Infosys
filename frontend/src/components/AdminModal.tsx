@@ -13,7 +13,7 @@ const PRESET_FOOD_COURTS = [
   { id: "enroute", name: "Enroute (Express FC)" },
   { id: "eli", name: "ILI (Executive Lounge)" },
   { id: "amoeba", name: "Ameba (Central FC)" },
-  { id: "fc8", name: "FC 8 (Guest FC)" },
+  { id: "fc8", name: "Festa (Guest FC)" },
 ];
 
 const SUGGESTED_OUTLETS = [
@@ -289,7 +289,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
                   </div>
                 </div>
 
-                <div className="space-y-1">
+                {/* <div className="space-y-1">
                   <label className="font-bold text-slate-700">Menu Type</label>
                   <button
                     type="button"
@@ -302,7 +302,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
                   >
                     {isFixedMenu ? "📌 Fixed Menu" : "🔥 Changing Daily"}
                   </button>
-                </div>
+                </div> */}
               </div>
 
               {/* Menu Photo Upload */}

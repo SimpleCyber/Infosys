@@ -18,7 +18,7 @@ export const CAMPUS_FOOD_COURTS = [
   { id: 'enroute', name: 'Enroute', description: 'Express Food Court' },
   { id: 'eli', name: 'ILI', description: 'Executive Lounge & Dining' },
   { id: 'amoeba', name: 'Ameba', description: 'Central Food Court' },
-  { id: 'fc8', name: 'FC 8', description: 'Guest Food Court' },
+  { id: 'fc8', name: 'Festa', description: 'Guest Food Court' },
 ];
 
 // In-Memory store fallback

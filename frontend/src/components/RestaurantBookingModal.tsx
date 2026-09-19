@@ -10,7 +10,7 @@ export interface CampusOutletCard {
   foodCourtName: string;
   mealWindow: MealWindow;
   imageUrl: string;
-  isFixedMenu: boolean;
+  isFixedMenu?: boolean;
   updatedAtFormatted?: string;
   description?: string;
   isSoftExpired?: boolean;
@@ -110,17 +110,14 @@ export const RestaurantBookingModal: React.FC<OutletDetailModalProps> = ({
             ✕
           </button>
 
-          {/* Menu Type Tag */}
-          <div className="absolute top-4 left-4 z-10 flex items-center space-x-1.5 flex-wrap gap-y-1">
-            <span className="text-[11px] font-extrabold px-3 py-1 rounded-full bg-white/95 text-neutral-900 shadow-md backdrop-blur-sm">
-              {activeOutlet.isFixedMenu ? "📌 Fixed Outlet Menu" : "🔥 Changing Daily Special"}
-            </span>
-            {activeOutlet.isSoftExpired && (
+          {/* Soft-Expired Badge (if yesterday's menu) */}
+          {activeOutlet.isSoftExpired && (
+            <div className="absolute top-4 left-4 z-10">
               <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-amber-400 text-amber-950 shadow-md backdrop-blur-sm">
-                Yesterday&apos;s Menu
+                ⚠️ Yesterday&apos;s Menu
               </span>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Multi-Photo Carousel Arrows (when > 1 photo exists) */}
           {photosList.length > 1 && (
