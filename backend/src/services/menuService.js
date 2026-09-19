@@ -156,7 +156,7 @@ export const getMenuFeed = async (mealWindow = null) => {
   // Only consider active, current (non-superseded) menus for the target meal slot
   const relevantMenus = rawMenus.filter((item) => {
     if (item.isCurrent === false) return false;
-    return item.mealWindow === targetWindow || item.isFixedMenu;
+    return item.mealWindow === targetWindow;
   });
 
   const todayMenus = relevantMenus.filter((item) => item.dateStr === todayStr);
@@ -378,40 +378,61 @@ export const purgeExpiredMenus = async () => {
   const nextPurgeAt = getNextMidnightIST();
   const lastPurgedAt = now.toISOString();
 
-  let purgedCount = memoryMenuStore.size;
-  memoryMenuStore.clear();
+  const todayStr = getTodayDateString();
+  const yesterdayStr = getYesterdayDateString();
 
-  // Purge documents from Firestore using writeBatch
+  let purgedCount = 0;
+
+  // 1. Purge documents from Firestore that are older than yesterday (2+ days old)
+  // or that were replaced/archived (isCurrent === false).
+  // YESTERDAY'S photos are intentionally preserved to serve as morning soft-fallback!
   try {
     const snap = await getDocs(collection(db, 'menus'));
     if (!snap.empty) {
-      purgedCount = Math.max(purgedCount, snap.size);
       const batch = writeBatch(db);
+      let hasDeletions = false;
+
       snap.docs.forEach((docSnap) => {
-        batch.delete(docSnap.ref);
+        const data = docSnap.data();
+        const isOlderThanYesterday = data.dateStr && data.dateStr < yesterdayStr;
+        const isArchived = data.isCurrent === false;
+
+        if (isOlderThanYesterday || isArchived) {
+          batch.delete(docSnap.ref);
+          purgedCount++;
+          hasDeletions = true;
+          memoryMenuStore.delete(docSnap.id);
+        }
       });
-      await batch.commit();
+
+      if (hasDeletions) {
+        await batch.commit();
+      }
     }
   } catch (err) {
     console.warn('[Firestore Purge Warning]', err.message);
   }
 
-  // Purge active IDs from Redis
+  // 2. Clean up Redis active keys that were purged
   try {
     const activeIds = await upstashRedis.smembers('menus:active_ids');
     if (activeIds && activeIds.length > 0) {
-      purgedCount = Math.max(purgedCount, activeIds.length);
-      const keys = activeIds.map((id) => `menu:${id}`);
-      await upstashRedis.del(...keys);
-      await upstashRedis.del('menus:active_ids');
+      for (const id of activeIds) {
+        const raw = await upstashRedis.get(`menu:${id}`);
+        if (raw) {
+          const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          if (parsed.dateStr < yesterdayStr || parsed.isCurrent === false) {
+            await upstashRedis.del(`menu:${id}`);
+            await upstashRedis.srem('menus:active_ids', id);
+          }
+        }
+      }
     }
   } catch (err) {
     console.warn('[Redis Purge Warning]', err.message);
   }
 
   // Clear Redis Feed Caches and record cycle status
-  const todayStr = getTodayDateString();
-  const yesterdayStr = getYesterdayDateString();
   try {
     await upstashRedis.del(`menus:feed:${todayStr}:lunch`);
     await upstashRedis.del(`menus:feed:${todayStr}:dinner`);

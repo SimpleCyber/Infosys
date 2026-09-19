@@ -28,7 +28,7 @@ export async function uploadMenuPhoto(payload: {
   mealWindow: MealWindow;
   imageUrl?: string;
   imageUrls?: string[];
-  isFixedMenu: boolean;
+  isFixedMenu?: boolean;
 }) {
   const res = await fetch(`${API_BASE}/admin/upload-menu`, {
     method: 'POST',

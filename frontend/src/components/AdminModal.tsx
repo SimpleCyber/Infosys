@@ -38,7 +38,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
   const [foodCourtId, setFoodCourtId] = useState(PRESET_FOOD_COURTS[0].id);
   const [outletName, setOutletName] = useState("");
   const [mealWindow, setMealWindow] = useState<MealWindow>("lunch");
-  const [isFixedMenu, setIsFixedMenu] = useState(false);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isCompressing, setIsCompressing] = useState(false);
   
@@ -119,7 +118,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
         mealWindow,
         imageUrls: imagePreviews,
         imageUrl: imagePreviews[0],
-        isFixedMenu,
       });
 
       setStatusMessage("Menu updated successfully!");
@@ -217,9 +215,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
                 <span className="text-sm flex-shrink-0 mt-0.5">🌙</span>
                 <div className="space-y-0.5">
                   <p className="text-[11px] font-black text-emerald-950">24-Hour Daily Refresh Cycle</p>
-                  <p className="text-[10px] text-emerald-900/80 leading-relaxed font-medium">
-                    Menus stay active all day and automatically reset at 12:00 midnight IST. Uploading a new photo replaces today&apos;s active chalkboard photo.
-                  </p>
+                
                 </div>
               </div>
 
@@ -288,21 +284,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
                     </button>
                   </div>
                 </div>
-
-                {/* <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Menu Type</label>
-                  <button
-                    type="button"
-                    onClick={() => setIsFixedMenu(!isFixedMenu)}
-                    className={`w-full py-1.5 px-2 rounded-xl border font-bold text-[10px] transition-colors ${
-                      isFixedMenu
-                        ? "bg-emerald-50 border-emerald-300 text-emerald-700"
-                        : "bg-slate-50 border-slate-200 text-slate-600"
-                    }`}
-                  >
-                    {isFixedMenu ? "📌 Fixed Menu" : "🔥 Changing Daily"}
-                  </button>
-                </div> */}
               </div>
 
               {/* Menu Photo Upload */}

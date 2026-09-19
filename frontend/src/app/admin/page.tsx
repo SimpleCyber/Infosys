@@ -245,9 +245,7 @@ export default function AdminPage() {
               <span className="text-base flex-shrink-0 mt-0.5">🌙</span>
               <div className="space-y-0.5">
                 <p className="text-xs font-black text-emerald-950">24-Hour Daily Fresh Cycle</p>
-                <p className="text-[11px] text-emerald-900/80 leading-relaxed font-medium">
-                  Menus stay live all day and automatically reset at 12:00 midnight IST. Uploading a new photo replaces today&apos;s active chalkboard photo while preserving history.
-                </p>
+                
               </div>
             </div>
 
