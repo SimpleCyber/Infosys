@@ -137,10 +137,10 @@ app.post('/api/admin/upload-menu', async (req, res) => {
 
 // Admin Delete Menu
 app.delete('/api/admin/menu/:id', async (req, res) => {
-  const { password } = req.body;
-  const expectedPassword = process.env.ADMIN_PASSWORD || 'infosys123';
+  const { password } = req.body || {};
+  const expectedPassword = (process.env.ADMIN_PASSWORD || 'infosys123').trim();
 
-  if (password !== expectedPassword) {
+  if (!password || password.trim() !== expectedPassword) {
     return res.status(401).json({ error: 'Unauthorized. Invalid admin password.' });
   }
 

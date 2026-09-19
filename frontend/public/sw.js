@@ -47,8 +47,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Bypass service worker entirely in localhost/development
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+    return;
+  }
+
   // Skip Chrome extensions and other origins
   if (!url.protocol.startsWith('http')) {
+    return;
+  }
+
+  // Never cache Turbopack / Webpack HMR or dev chunks
+  if (url.pathname.includes('/_next/webpack-hmr') || url.pathname.includes('/_next/static/development/')) {
     return;
   }
 

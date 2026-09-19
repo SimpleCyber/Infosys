@@ -255,47 +255,7 @@ export const saveOutletMenu = async (menuData) => {
   const timeFormatted = formatTimeToIST(now);
   const updatedAtFormatted = `Updated ${timeFormatted}`;
 
-  // 2. Photo Replacement & Audit Trail in Firestore:
-  // If an active menu exists for this slot today, archive it (isCurrent: false, replacedBy)
-  try {
-    const snap = await getDocs(collection(db, 'menus'));
-    const batch = writeBatch(db);
-    let hasUpdates = false;
-
-    for (const docSnap of snap.docs) {
-      const data = docSnap.data();
-      if (
-        data.foodCourtId === foodCourtId &&
-        data.outletName?.toLowerCase() === outletName.toLowerCase() &&
-        data.mealWindow === mealWindow &&
-        data.dateStr === todayStr &&
-        data.isCurrent !== false
-      ) {
-        batch.update(doc(db, 'menus', docSnap.id), {
-          isCurrent: false,
-          archivedAt: now.toISOString(),
-          replacedBy: menuId,
-        });
-        hasUpdates = true;
-
-        // Also update Redis & local memory
-        data.isCurrent = false;
-        data.archivedAt = now.toISOString();
-        data.replacedBy = menuId;
-        await upstashRedis.set(`menu:${docSnap.id}`, JSON.stringify(data));
-        await upstashRedis.srem('menus:active_ids', docSnap.id);
-        memoryMenuStore.set(docSnap.id, data);
-      }
-    }
-
-    if (hasUpdates) {
-      await batch.commit();
-    }
-  } catch (archiveErr) {
-    console.warn('[Firestore Audit Trail Archive Warning]', archiveErr.message);
-  }
-
-  // 3. Create Dedicated Document Record
+  // 2. Dedicated Document Record for this uploaded photo
   const record = {
     id: menuId,
     foodCourtId,
