@@ -269,13 +269,13 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
                 <div className="space-y-1.5">
                   <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-extrabold border border-emerald-200/60">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>6-Hour Menu Rotation Active</span>
+                    <span>Daily Midnight Reset Active</span>
                   </div>
                   <h3 className="text-base font-black text-neutral-900 tracking-tight">
                     Waiting for Manager Uploads
                   </h3>
                   <p className="text-xs text-neutral-500 max-w-xs mx-auto font-medium leading-relaxed">
-                    Campus menus reset every 6 hours. Past menus have been cleared, and newly uploaded menus will appear here live as managers post them.
+                    Campus menus reset every night at 12:00 midnight. Past menus have been archived, and newly uploaded menus appear here live as managers post them.
                   </p>
                 </div>
                 <div className="pt-1">
@@ -319,7 +319,7 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
                   {/* Outlets row or placeholder */}
                   {courtOutlets.length === 0 ? (
                     <div className="mx-5 p-4 rounded-2xl bg-white border border-slate-200/70 text-center text-xs text-neutral-400 font-medium">
-                      No active menus for {court.name} in this 6-hour cycle.
+                      No active menus for {court.name} today.
                     </div>
                   ) : (
                     <div
@@ -348,12 +348,20 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
                               />
                             )}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
-                            <div className="absolute top-3 left-3 flex items-center space-x-1.5">
-                              <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-white/95 text-neutral-900 shadow-xs backdrop-blur-sm">
-                                {outlet.isFixedMenu ? "📌 Fixed Menu" : "🔥 Daily Special"}
-                              </span>
-                              <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-black/60 text-white/90 backdrop-blur-sm">
-                                6h
+                            <div className="absolute top-3 left-3 flex items-center space-x-1.5 flex-wrap gap-y-1 z-10">
+                              {outlet.isSoftExpired ? (
+                                <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-amber-400 text-amber-950 shadow-xs backdrop-blur-sm flex items-center space-x-1 border border-amber-500/30">
+                                  <span>⚠️</span>
+                                  <span>Yesterday&apos;s Menu</span>
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-white/95 text-neutral-900 shadow-xs backdrop-blur-sm">
+                                  {outlet.isFixedMenu ? "📌 Fixed Menu" : "🔥 Daily Special"}
+                                </span>
+                              )}
+                              <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-black/60 text-white/90 backdrop-blur-sm flex items-center space-x-1">
+                                {!outlet.isSoftExpired && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
+                                <span>{outlet.isSoftExpired ? "May be outdated" : (outlet.updatedAtFormatted || "Today")}</span>
                               </span>
                             </div>
                             <div className="absolute bottom-2.5 left-0 right-0 flex items-center justify-center space-x-1.5">
@@ -446,12 +454,20 @@ export const FoodCourtFeed: React.FC<FoodCourtFeedProps> = ({
                           />
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
-                        <div className="absolute top-3 left-3 flex items-center space-x-1.5">
-                          <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-white/95 text-neutral-900 shadow-xs backdrop-blur-sm">
-                            {outlet.isFixedMenu ? "📌 Fixed Menu" : "🔥 Daily Special"}
-                          </span>
-                          <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-black/60 text-white/90 backdrop-blur-sm">
-                            6h
+                        <div className="absolute top-3 left-3 flex items-center space-x-1.5 flex-wrap gap-y-1 z-10">
+                          {outlet.isSoftExpired ? (
+                            <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-amber-400 text-amber-950 shadow-xs backdrop-blur-sm flex items-center space-x-1 border border-amber-500/30">
+                              <span>⚠️</span>
+                              <span>Yesterday&apos;s Menu</span>
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-white/95 text-neutral-900 shadow-xs backdrop-blur-sm">
+                              {outlet.isFixedMenu ? "📌 Fixed Menu" : "🔥 Daily Special"}
+                            </span>
+                          )}
+                          <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-black/60 text-white/90 backdrop-blur-sm flex items-center space-x-1">
+                            {!outlet.isSoftExpired && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
+                            <span>{outlet.isSoftExpired ? "May be outdated" : (outlet.updatedAtFormatted || "Today")}</span>
                           </span>
                         </div>
                         <div className="absolute bottom-2.5 left-0 right-0 flex items-center justify-center space-x-1.5">

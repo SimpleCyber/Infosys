@@ -5,13 +5,12 @@ import {
   CAMPUS_FOOD_COURTS,
   getMenuFeed,
   saveOutletMenu,
+  deleteOutletMenu,
   purgeExpiredMenus,
   getCurrentMealWindow,
   getTodayDateString,
   getCycleStatus,
 } from './services/menuService.js';
-import { rtdb } from './config/firebase.js';
-import { ref, remove } from 'firebase/database';
 import { upstashRedis } from './config/redis.js';
 
 dotenv.config();
@@ -147,11 +146,7 @@ app.delete('/api/admin/menu/:id', async (req, res) => {
 
   const { id } = req.params;
   try {
-    await remove(ref(rtdb, `menus/${id}`));
-    const todayStr = getTodayDateString();
-    await upstashRedis.del(`menus:feed:${todayStr}:lunch`);
-    await upstashRedis.del(`menus:feed:${todayStr}:dinner`);
-
+    await deleteOutletMenu(id);
     res.json({ success: true, message: `Menu ${id} deleted` });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete menu', message: error.message });
@@ -171,7 +166,7 @@ app.post('/api/cron/cleanup', async (req, res) => {
     const result = await purgeExpiredMenus();
     res.json({
       success: true,
-      message: '6-Hour cycle automated cleanup executed successfully',
+      message: '24-Hour midnight cycle automated cleanup executed successfully',
       purgedCount: result.purgedCount,
       intervalHours: result.intervalHours,
       lastPurgedAt: result.lastPurgedAt,

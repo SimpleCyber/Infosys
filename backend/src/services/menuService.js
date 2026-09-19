@@ -1,6 +1,14 @@
-import { rtdb } from '../config/firebase.js';
-import { ref, get, set, remove, child } from 'firebase/database';
+import { db } from '../config/firebase.js';
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+  writeBatch,
+} from 'firebase/firestore';
 import { upstashRedis } from '../config/redis.js';
+import { uploadToCloudinary } from '../config/cloudinary.js';
 
 export const CAMPUS_FOOD_COURTS = [
   { id: 'magna', name: 'Magna', description: 'North Zone Court' },
@@ -13,40 +21,8 @@ export const CAMPUS_FOOD_COURTS = [
   { id: 'fc8', name: 'FC 8', description: 'Guest Food Court' },
 ];
 
-// In-Memory store fallback in case Firebase rules block unauthenticated reads
+// In-Memory store fallback
 const memoryMenuStore = new Map();
-
-// Cycle Tracking (6-Hour Deletion Interval)
-let lastPurgedAt = new Date().toISOString();
-let nextPurgeAt = new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString();
-
-export const getCycleStatus = async () => {
-  try {
-    const cached = await upstashRedis.get('system:cycle');
-    if (cached) {
-      return typeof cached === 'string' ? JSON.parse(cached) : cached;
-    }
-  } catch (err) {
-    console.warn('[Redis Cycle Fetch Warning]', err.message);
-  }
-  return {
-    intervalHours: 6,
-    lastPurgedAt,
-    nextPurgeAt,
-  };
-};
-
-export const getCurrentMealWindow = () => {
-  const now = new Date();
-  const istOffset = 5.5 * 60 * 60 * 1000;
-  const istDate = new Date(now.getTime() + istOffset);
-  const hours = istDate.getUTCHours();
-  
-  if (hours >= 12 && hours < 17) {
-    return 'lunch';
-  }
-  return 'dinner';
-};
 
 export const getTodayDateString = () => {
   const now = new Date();
@@ -55,12 +31,84 @@ export const getTodayDateString = () => {
   return istDate.toISOString().split('T')[0];
 };
 
+export const getYesterdayDateString = () => {
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(now.getTime() + istOffset);
+  istDate.setUTCDate(istDate.getUTCDate() - 1);
+  return istDate.toISOString().split('T')[0];
+};
+
+export const getNextMidnightIST = () => {
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(now.getTime() + istOffset);
+  const nextMidnightIST = new Date(istDate);
+  nextMidnightIST.setUTCDate(nextMidnightIST.getUTCDate() + 1);
+  nextMidnightIST.setUTCHours(0, 0, 0, 0);
+  const nextMidnightUTC = new Date(nextMidnightIST.getTime() - istOffset);
+  return nextMidnightUTC.toISOString();
+};
+
+export const getCurrentMealWindow = () => {
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(now.getTime() + istOffset);
+  const hours = istDate.getUTCHours();
+
+  if (hours >= 12 && hours < 17) {
+    return 'lunch';
+  }
+  return 'dinner';
+};
+
+export const formatTimeToIST = (dateObj = new Date()) => {
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(dateObj.getTime() + istOffset);
+  const hours = istDate.getUTCHours();
+  const minutes = istDate.getUTCMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const formattedHours = hours % 12 === 0 ? 12 : hours % 12;
+  const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+  return `${formattedHours}:${formattedMinutes} ${ampm}`;
+};
+
+// Cycle Tracking (24-Hour Daily Midnight Deletion Interval)
+export const getCycleStatus = async () => {
+  try {
+    const cached = await upstashRedis.get('system:cycle');
+    if (cached) {
+      const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached;
+      return {
+        ...parsed,
+        intervalHours: 24,
+      };
+    }
+  } catch (err) {
+    console.warn('[Redis Cycle Fetch Warning]', err.message);
+  }
+
+  return {
+    intervalHours: 24,
+    lastPurgedAt: new Date().toISOString(),
+    nextPurgeAt: getNextMidnightIST(),
+  };
+};
+
+/**
+ * Fetches menu feed using Firestore as primary database:
+ * 1. Checks Redis cache first (0 DB cost on hit)
+ * 2. Queries Firestore collection `menus` directly
+ * 3. Applies Soft Expiry: fallback to yesterday's menu if today's menu isn't uploaded yet
+ * 4. Applies Hard Expiry: menus older than yesterday are excluded from active feed
+ */
 export const getMenuFeed = async (mealWindow = null) => {
   const targetWindow = mealWindow || getCurrentMealWindow();
   const todayStr = getTodayDateString();
+  const yesterdayStr = getYesterdayDateString();
   const cacheKey = `menus:feed:${todayStr}:${targetWindow}`;
 
-  // 1. Try Upstash Redis Cache First (0 DB cost on hit)
+  // 1. Try Upstash Redis Cache First
   try {
     const cachedData = await upstashRedis.get(cacheKey);
     if (cachedData) {
@@ -71,38 +119,78 @@ export const getMenuFeed = async (mealWindow = null) => {
     console.error('[Redis Cache Read Error]', err.message);
   }
 
-  // 2. Query Primary Store (Firebase Realtime DB with Fallback)
+  // 2. Query Primary Store: Firebase Firestore
   let rawMenus = [];
   try {
-    const dbRef = ref(rtdb);
-    const snapshot = await get(child(dbRef, 'menus'));
-    if (snapshot.exists()) {
-      const val = snapshot.val();
-      rawMenus = Object.keys(val).map(key => ({ id: key, ...val[key] }));
+    const menusSnapshot = await getDocs(collection(db, 'menus'));
+    if (!menusSnapshot.empty) {
+      rawMenus = menusSnapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+      }));
     }
   } catch (err) {
-    console.warn('[Firebase DB Access Warning]', err.message, 'Falling back to high-speed local store');
+    console.warn('[Firebase Firestore Read Warning]', err.message);
+  }
+
+  // Fallback to Redis active documents if Firestore was empty or failed
+  if (rawMenus.length === 0) {
+    try {
+      const activeIds = await upstashRedis.smembers('menus:active_ids');
+      if (activeIds && activeIds.length > 0) {
+        const pipelineKeys = activeIds.map((id) => `menu:${id}`);
+        const docs = await upstashRedis.mget(...pipelineKeys);
+        rawMenus = docs
+          .filter(Boolean)
+          .map((doc) => (typeof doc === 'string' ? JSON.parse(doc) : doc));
+      }
+    } catch (err) {
+      console.warn('[Redis Read Fallback Warning]', err.message);
+    }
+  }
+
+  if (rawMenus.length === 0) {
     rawMenus = Array.from(memoryMenuStore.values());
   }
 
-  const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
-  const currentTimeMs = Date.now();
-
-  // Filter menus matching today, requested meal window, AND strictly within 6-hour cycle
-  const activeMenus = rawMenus.filter(item => {
-    // Exclude if older than 6 hours
-    if (item.updatedAt) {
-      const ageMs = currentTimeMs - new Date(item.updatedAt).getTime();
-      if (ageMs >= SIX_HOURS_MS) {
-        return false;
-      }
-    }
-    return item.dateStr === todayStr && (item.mealWindow === targetWindow || item.isFixedMenu);
+  // Only consider active, current (non-superseded) menus for the target meal slot
+  const relevantMenus = rawMenus.filter((item) => {
+    if (item.isCurrent === false) return false;
+    return item.mealWindow === targetWindow || item.isFixedMenu;
   });
 
+  const todayMenus = relevantMenus.filter((item) => item.dateStr === todayStr);
+  const yesterdayMenus = relevantMenus.filter((item) => item.dateStr === yesterdayStr);
+
+  const activeMenus = [];
+  const processedOutlets = new Set();
+
+  // First add all today's fresh menus
+  for (const item of todayMenus) {
+    const outletKey = `${item.foodCourtId}_${item.outletName.toLowerCase()}_${item.mealWindow}`;
+    activeMenus.push({
+      ...item,
+      isSoftExpired: false,
+    });
+    processedOutlets.add(outletKey);
+  }
+
+  // For outlets not posted today, fallback to yesterday's menu with soft expiry banner
+  for (const item of yesterdayMenus) {
+    const outletKey = `${item.foodCourtId}_${item.outletName.toLowerCase()}_${item.mealWindow}`;
+    if (!processedOutlets.has(outletKey)) {
+      activeMenus.push({
+        ...item,
+        isSoftExpired: true,
+        statusBanner: "Yesterday's menu — may be outdated",
+      });
+      processedOutlets.add(outletKey);
+    }
+  }
+
   // Group by Food Court (Y-Axis)
-  const groupedFeed = CAMPUS_FOOD_COURTS.map(fc => {
-    const courtOutlets = activeMenus.filter(m => m.foodCourtId === fc.id);
+  const groupedFeed = CAMPUS_FOOD_COURTS.map((fc) => {
+    const courtOutlets = activeMenus.filter((m) => m.foodCourtId === fc.id);
     return {
       foodCourtId: fc.id,
       foodCourtName: fc.name,
@@ -110,7 +198,7 @@ export const getMenuFeed = async (mealWindow = null) => {
       outlets: courtOutlets,
       hasActiveMenus: courtOutlets.length > 0,
     };
-  }).filter(group => group.hasActiveMenus);
+  }).filter((group) => group.hasActiveMenus);
 
   const cycle = await getCycleStatus();
 
@@ -132,13 +220,31 @@ export const getMenuFeed = async (mealWindow = null) => {
   return { source: 'database', data: result };
 };
 
+/**
+ * Saves outlet menu directly into Firebase Firestore:
+ * 1. Streams photo to Cloudinary CDN using user's CLOUDINARY_URL
+ * 2. Formats timestamp in IST (e.g. "Updated 8:42 AM")
+ * 3. Replaces previous current version for this slot on same day, preserving audit trail
+ * 4. Creates a dedicated, separate document in Firebase Firestore collection `menus`
+ */
 export const saveOutletMenu = async (menuData) => {
   const { foodCourtId, outletName, mealWindow, imageUrl, isFixedMenu = false } = menuData;
   const todayStr = getTodayDateString();
-  const fcObj = CAMPUS_FOOD_COURTS.find(f => f.id === foodCourtId);
-  
+  const fcObj = CAMPUS_FOOD_COURTS.find((f) => f.id === foodCourtId);
+
   if (!fcObj) {
     throw new Error(`Invalid food court ID: ${foodCourtId}`);
+  }
+
+  // 1. Upload photo to Cloudinary CDN
+  let cdnImageUrl = imageUrl;
+  let cloudinaryPublicId = null;
+  try {
+    const uploadRes = await uploadToCloudinary(imageUrl, 'infosys_menus');
+    cdnImageUrl = uploadRes.secureUrl;
+    cloudinaryPublicId = uploadRes.publicId;
+  } catch (uploadErr) {
+    console.warn('[Cloudinary Upload Warning]', uploadErr.message, 'Using raw image source');
   }
 
   const sanitizedOutlet = outletName.toLowerCase().replace(/[^a-z0-9]/g, '_');
@@ -146,44 +252,85 @@ export const saveOutletMenu = async (menuData) => {
   const menuId = `${foodCourtId}_${sanitizedOutlet}_${mealWindow}_${todayStr}_${uniqueSuffix}`;
 
   const now = new Date();
-  const istOffset = 5.5 * 60 * 60 * 1000;
-  const istDate = new Date(now.getTime() + istOffset);
-  const timeFormatted = istDate.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-    timeZone: 'UTC',
-  });
+  const timeFormatted = formatTimeToIST(now);
+  const updatedAtFormatted = `Updated ${timeFormatted}`;
 
-  const expiresAt = new Date(now.getTime() + 6 * 60 * 60 * 1000).toISOString();
+  // 2. Photo Replacement & Audit Trail in Firestore:
+  // If an active menu exists for this slot today, archive it (isCurrent: false, replacedBy)
+  try {
+    const snap = await getDocs(collection(db, 'menus'));
+    const batch = writeBatch(db);
+    let hasUpdates = false;
 
+    for (const docSnap of snap.docs) {
+      const data = docSnap.data();
+      if (
+        data.foodCourtId === foodCourtId &&
+        data.outletName?.toLowerCase() === outletName.toLowerCase() &&
+        data.mealWindow === mealWindow &&
+        data.dateStr === todayStr &&
+        data.isCurrent !== false
+      ) {
+        batch.update(doc(db, 'menus', docSnap.id), {
+          isCurrent: false,
+          archivedAt: now.toISOString(),
+          replacedBy: menuId,
+        });
+        hasUpdates = true;
+
+        // Also update Redis & local memory
+        data.isCurrent = false;
+        data.archivedAt = now.toISOString();
+        data.replacedBy = menuId;
+        await upstashRedis.set(`menu:${docSnap.id}`, JSON.stringify(data));
+        await upstashRedis.srem('menus:active_ids', docSnap.id);
+        memoryMenuStore.set(docSnap.id, data);
+      }
+    }
+
+    if (hasUpdates) {
+      await batch.commit();
+    }
+  } catch (archiveErr) {
+    console.warn('[Firestore Audit Trail Archive Warning]', archiveErr.message);
+  }
+
+  // 3. Create Dedicated Document Record
   const record = {
     id: menuId,
     foodCourtId,
     foodCourtName: fcObj.name,
     outletName,
     mealWindow,
-    imageUrl,
+    imageUrl: cdnImageUrl,
+    cloudinaryPublicId,
     isFixedMenu: Boolean(isFixedMenu),
     dateStr: todayStr,
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
-    updatedAtFormatted: `Today at ${timeFormatted}`,
-    expiresAt,
-    cycleHours: 6,
+    updatedAtFormatted,
+    isCurrent: true,
+    cycleHours: 24,
   };
 
-  // Save to Memory Store
-  memoryMenuStore.set(menuId, record);
-
-  // Attempt save to Firebase
+  // 4. Save directly as Dedicated Document in Firebase Firestore
   try {
-    await set(ref(rtdb, `menus/${menuId}`), record);
+    await setDoc(doc(db, 'menus', menuId), record);
   } catch (err) {
-    console.warn('[Firebase Save Warning]', err.message);
+    console.error('[Firebase Firestore Save Error]', err.message);
+    throw err;
   }
 
-  // Invalidate Redis Cache
+  // 5. Persist to Upstash Redis & local memory
+  try {
+    await upstashRedis.set(`menu:${menuId}`, JSON.stringify(record));
+    await upstashRedis.sadd('menus:active_ids', menuId);
+  } catch (err) {
+    console.warn('[Redis Document Save Warning]', err.message);
+  }
+  memoryMenuStore.set(menuId, record);
+
+  // 6. Invalidate Redis Feed Caches
   try {
     await upstashRedis.del(`menus:feed:${todayStr}:lunch`);
     await upstashRedis.del(`menus:feed:${todayStr}:dinner`);
@@ -198,10 +345,19 @@ export const deleteOutletMenu = async (id) => {
   memoryMenuStore.delete(id);
   const todayStr = getTodayDateString();
 
+  // Delete directly from Firestore
   try {
-    await remove(ref(rtdb, `menus/${id}`));
+    await deleteDoc(doc(db, 'menus', id));
   } catch (err) {
-    console.warn('[Firebase Delete Warning]', err.message);
+    console.warn('[Firebase Firestore Delete Warning]', err.message);
+  }
+
+  // Delete from Redis
+  try {
+    await upstashRedis.del(`menu:${id}`);
+    await upstashRedis.srem('menus:active_ids', id);
+  } catch (err) {
+    console.error('[Redis Delete Error]', err.message);
   }
 
   try {
@@ -213,51 +369,70 @@ export const deleteOutletMenu = async (id) => {
 };
 
 /**
- * 6-Hour Cron Deletion Purge:
- * Deletes all existing uploaded images from memory, Firebase RTDB, and Redis.
- * Sets cycle timestamps for the next 6-hour window.
+ * 24-Hour Midnight Deletion Purge:
+ * Resets active menus for the daily 12:00 AM midnight fresh start.
+ * Purges Firestore menus collection and Redis cache.
  */
 export const purgeExpiredMenus = async () => {
   const now = new Date();
-  const nextPurge = new Date(now.getTime() + 6 * 60 * 60 * 1000);
-  lastPurgedAt = now.toISOString();
-  nextPurgeAt = nextPurge.toISOString();
+  const nextPurgeAt = getNextMidnightIST();
+  const lastPurgedAt = now.toISOString();
 
-  // 1. Purge all items in local memory store
   let purgedCount = memoryMenuStore.size;
   memoryMenuStore.clear();
 
-  // 2. Purge all items in Firebase RTDB menus node
+  // Purge documents from Firestore using writeBatch
   try {
-    const dbRef = ref(rtdb);
-    const snapshot = await get(child(dbRef, 'menus'));
-    if (snapshot.exists()) {
-      const val = snapshot.val();
-      const rtdbKeys = Object.keys(val);
-      purgedCount = Math.max(purgedCount, rtdbKeys.length);
-      await remove(ref(rtdb, 'menus'));
+    const snap = await getDocs(collection(db, 'menus'));
+    if (!snap.empty) {
+      purgedCount = Math.max(purgedCount, snap.size);
+      const batch = writeBatch(db);
+      snap.docs.forEach((docSnap) => {
+        batch.delete(docSnap.ref);
+      });
+      await batch.commit();
     }
   } catch (err) {
-    console.warn('[Firebase Purge Warning]', err.message);
+    console.warn('[Firestore Purge Warning]', err.message);
   }
 
-  // 3. Clear Redis Feed Caches and record cycle status
+  // Purge active IDs from Redis
+  try {
+    const activeIds = await upstashRedis.smembers('menus:active_ids');
+    if (activeIds && activeIds.length > 0) {
+      purgedCount = Math.max(purgedCount, activeIds.length);
+      const keys = activeIds.map((id) => `menu:${id}`);
+      await upstashRedis.del(...keys);
+      await upstashRedis.del('menus:active_ids');
+    }
+  } catch (err) {
+    console.warn('[Redis Purge Warning]', err.message);
+  }
+
+  // Clear Redis Feed Caches and record cycle status
   const todayStr = getTodayDateString();
+  const yesterdayStr = getYesterdayDateString();
   try {
     await upstashRedis.del(`menus:feed:${todayStr}:lunch`);
     await upstashRedis.del(`menus:feed:${todayStr}:dinner`);
-    await upstashRedis.set('system:cycle', JSON.stringify({
-      intervalHours: 6,
-      lastPurgedAt,
-      nextPurgeAt,
-    }), { ex: 86400 * 2 });
+    await upstashRedis.del(`menus:feed:${yesterdayStr}:lunch`);
+    await upstashRedis.del(`menus:feed:${yesterdayStr}:dinner`);
+    await upstashRedis.set(
+      'system:cycle',
+      JSON.stringify({
+        intervalHours: 24,
+        lastPurgedAt,
+        nextPurgeAt,
+      }),
+      { ex: 86400 * 2 }
+    );
   } catch (err) {
     console.error('[Redis Purge Error]', err.message);
   }
 
   return {
     purgedCount,
-    intervalHours: 6,
+    intervalHours: 24,
     lastPurgedAt,
     nextPurgeAt,
     timestamp: now.toISOString(),

@@ -240,6 +240,16 @@ export default function AdminPage() {
               msOverflowStyle: "none",
             }}
           >          
+            {/* 24-Hour Daily Fresh Cycle Notice Banner */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50/60 border border-emerald-200/80 flex items-start space-x-2.5 shadow-2xs">
+              <span className="text-base flex-shrink-0 mt-0.5">🌙</span>
+              <div className="space-y-0.5">
+                <p className="text-xs font-black text-emerald-950">24-Hour Daily Fresh Cycle</p>
+                <p className="text-[11px] text-emerald-900/80 leading-relaxed font-medium">
+                  Menus stay live all day and automatically reset at 12:00 midnight IST. Uploading a new photo replaces today&apos;s active chalkboard photo while preserving history.
+                </p>
+              </div>
+            </div>
 
             {/* 1. Food Court Selection: Scrollable Carousel with Safe Padding to Prevent Any Ring Cropping */}
             <div className="space-y-2">

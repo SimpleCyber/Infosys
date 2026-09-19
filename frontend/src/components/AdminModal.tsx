@@ -212,14 +212,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSucce
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
-              {/* 6-Hour Menu Lifecycle Notice Banner */}
-              <div className="p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50/60 border border-amber-200/80 flex items-start space-x-2 shadow-2xs">
-                <span className="text-sm flex-shrink-0 mt-0.5">⏱️</span>
+              {/* 24-Hour Daily Midnight Lifecycle Notice Banner */}
+              <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50/60 border border-emerald-200/80 flex items-start space-x-2 shadow-2xs">
+                <span className="text-sm flex-shrink-0 mt-0.5">🌙</span>
                 <div className="space-y-0.5">
-                  <p className="text-[11px] font-black text-amber-950">6-Hour Menu Rotation Cycle</p>
-                    <p className="text-[10px] text-amber-900/80 leading-relaxed font-medium">
-                      Uploaded menu photos are active for this 6-hour window and automatically reset every 6 hours by the automated cron job.
-                    </p>
+                  <p className="text-[11px] font-black text-emerald-950">24-Hour Daily Refresh Cycle</p>
+                  <p className="text-[10px] text-emerald-900/80 leading-relaxed font-medium">
+                    Menus stay active all day and automatically reset at 12:00 midnight IST. Uploading a new photo replaces today&apos;s active chalkboard photo.
+                  </p>
                 </div>
               </div>
 

@@ -19,6 +19,9 @@ export interface OutletMenu {
   updatedAtFormatted: string;
   expiresAt?: string;
   cycleHours?: number;
+  isSoftExpired?: boolean;
+  statusBanner?: string;
+  isCurrent?: boolean;
 }
 
 export interface FoodCourtGroup {

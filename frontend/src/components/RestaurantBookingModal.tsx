@@ -13,6 +13,8 @@ export interface CampusOutletCard {
   isFixedMenu: boolean;
   updatedAtFormatted?: string;
   description?: string;
+  isSoftExpired?: boolean;
+  statusBanner?: string;
 }
 
 interface OutletDetailModalProps {
@@ -82,9 +84,9 @@ export const RestaurantBookingModal: React.FC<OutletDetailModalProps> = ({
           {hasImageError ? (
             <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center p-6 text-center space-y-2 select-none">
               <span className="text-4xl">⏱️</span>
-              <span className="text-base font-black text-white">Menu Image Expired</span>
+              <span className="text-base font-black text-white">Menu Image Unavailable</span>
               <p className="text-xs text-slate-300 max-w-xs">
-                This image was purged in the 6-hour campus cleanup cycle. Waiting for manager update.
+                This image was refreshed in the daily midnight cleanup. Waiting for manager update.
               </p>
             </div>
           ) : (
@@ -109,10 +111,15 @@ export const RestaurantBookingModal: React.FC<OutletDetailModalProps> = ({
           </button>
 
           {/* Menu Type Tag */}
-          <div className="absolute top-4 left-4 z-10">
+          <div className="absolute top-4 left-4 z-10 flex items-center space-x-1.5 flex-wrap gap-y-1">
             <span className="text-[11px] font-extrabold px-3 py-1 rounded-full bg-white/95 text-neutral-900 shadow-md backdrop-blur-sm">
               {activeOutlet.isFixedMenu ? "📌 Fixed Outlet Menu" : "🔥 Changing Daily Special"}
             </span>
+            {activeOutlet.isSoftExpired && (
+              <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-amber-400 text-amber-950 shadow-md backdrop-blur-sm">
+                Yesterday&apos;s Menu
+              </span>
+            )}
           </div>
 
           {/* Multi-Photo Carousel Arrows (when > 1 photo exists) */}
@@ -169,6 +176,16 @@ export const RestaurantBookingModal: React.FC<OutletDetailModalProps> = ({
 
         {/* Details Section */}
         <div className="p-6 overflow-y-auto space-y-4 flex-1">
+          {/* Soft Expiry Alert Banner */}
+          {activeOutlet.isSoftExpired && (
+            <div className="p-3 rounded-2xl bg-amber-50 border border-amber-300/80 text-amber-950 text-xs font-semibold flex items-center space-x-2.5 shadow-2xs">
+              <span className="text-lg">⚠️</span>
+              <div className="leading-snug">
+                <span className="font-extrabold">Yesterday&apos;s Menu:</span> This food court hasn&apos;t posted today&apos;s fresh menu yet, so yesterday&apos;s chalkboard photo is displayed above.
+              </div>
+            </div>
+          )}
+
           {/* Header Info */}
           <div>
             <div className="flex items-center space-x-2 mb-1.5">
@@ -202,9 +219,12 @@ export const RestaurantBookingModal: React.FC<OutletDetailModalProps> = ({
           </div>
 
           {/* Timestamp Info */}
-          <div className="flex items-center justify-between text-xs text-neutral-400 font-medium pt-1 px-1">
-            <span>Last Updated:</span>
-            <span className="text-neutral-700 font-semibold">
+          <div className="flex items-center justify-between text-xs text-neutral-500 font-medium pt-1 px-1">
+            <span className="flex items-center space-x-1">
+              <span>🕒</span>
+              <span>Status:</span>
+            </span>
+            <span className="text-neutral-800 font-bold px-2.5 py-0.5 rounded-md bg-slate-100 border border-slate-200/60">
               {activeOutlet.updatedAtFormatted || "Today"}
             </span>
           </div>

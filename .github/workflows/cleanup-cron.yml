@@ -1,18 +1,16 @@
-name: Purge Expired Campus Menus Cron
+name: 24-Hour Midnight Campus Menus Purge Cron
 
 on:
   schedule:
-    # 5:05 PM IST (11:35 AM UTC) - After Lunch window passes
-    - cron: '35 11 * * *'
-    # 12:05 AM IST (6:35 PM UTC) - After Dinner window passes
-    - cron: '35 18 * * *'
+    # 12:00 AM midnight IST (6:30 PM UTC) - Daily midnight fresh start
+    - cron: '30 18 * * *'
   workflow_dispatch:
 
 jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Purge Cleanup API
+      - name: Trigger 24-Hour Midnight Purge Cleanup API
         run: |
           curl -X POST "${{ secrets.BACKEND_API_URL }}/api/cron/cleanup" \
             -H "Content-Type: application/json" \
