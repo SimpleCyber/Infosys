@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { X } from "lucide-react";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -23,13 +24,22 @@ export function PWAInstallPrompt() {
 
     if (isRunningStandalone) {
       setIsStandalone(true);
+      try {
+        localStorage.setItem("infosys_pwa_dismissed", "true");
+      } catch {}
       return;
     }
 
-    // Check if user dismissed previously in this session
-    if (sessionStorage.getItem("infosys_pwa_dismissed") === "true") {
-      setIsDismissed(true);
-    }
+    // Check if user previously dismissed or denied installation in localStorage
+    try {
+      if (
+        localStorage.getItem("infosys_pwa_dismissed") === "true" ||
+        sessionStorage.getItem("infosys_pwa_dismissed") === "true"
+      ) {
+        setIsDismissed(true);
+        return;
+      }
+    } catch {}
 
     // Detect iOS
     const userAgent = window.navigator.userAgent.toLowerCase();
@@ -38,6 +48,13 @@ export function PWAInstallPrompt() {
 
     // Listen for Chromium beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
+      // If user has already dismissed in localStorage, do not display
+      try {
+        if (localStorage.getItem("infosys_pwa_dismissed") === "true") {
+          return;
+        }
+      } catch {}
+
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setIsInstallable(true);
@@ -50,6 +67,9 @@ export function PWAInstallPrompt() {
       setIsInstallable(false);
       setDeferredPrompt(null);
       setIsStandalone(true);
+      try {
+        localStorage.setItem("infosys_pwa_dismissed", "true");
+      } catch {}
       console.log("[PWA] App was installed successfully");
     };
 
@@ -68,6 +88,13 @@ export function PWAInstallPrompt() {
       if (choice.outcome === "accepted") {
         console.log("[PWA] User accepted install prompt");
         setIsInstallable(false);
+        try {
+          localStorage.setItem("infosys_pwa_dismissed", "true");
+        } catch {}
+      } else {
+        // User denied/dismissed the browser install prompt
+        console.log("[PWA] User denied install prompt");
+        handleDismiss();
       }
       setDeferredPrompt(null);
     } else if (isIOS) {
@@ -77,7 +104,10 @@ export function PWAInstallPrompt() {
 
   const handleDismiss = () => {
     setIsDismissed(true);
-    sessionStorage.setItem("infosys_pwa_dismissed", "true");
+    try {
+      localStorage.setItem("infosys_pwa_dismissed", "true");
+      sessionStorage.setItem("infosys_pwa_dismissed", "true");
+    } catch {}
   };
 
   // Don't display if running as installed app or dismissed
@@ -124,10 +154,10 @@ export function PWAInstallPrompt() {
 
           <button
             onClick={handleDismiss}
-            className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white/80 flex items-center justify-center text-xs transition-colors flex-shrink-0"
+            className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white/80 flex items-center justify-center text-xs transition-colors flex-shrink-0 cursor-pointer"
             title="Dismiss"
           >
-            ✕
+            <X className="w-3.5 h-3.5 stroke-[2.5]" />
           </button>
         </div>
 
